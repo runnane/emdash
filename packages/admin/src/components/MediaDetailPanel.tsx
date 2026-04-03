@@ -10,7 +10,7 @@ import { X, Trash, Calendar, HardDrive, Ruler } from "@phosphor-icons/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 
-import { updateMedia, deleteMedia, type MediaItem } from "../lib/api";
+import { updateMedia, deleteMedia, deleteFromProvider, updateProviderMedia, type MediaItem } from "../lib/api";
 import { useStableCallback } from "../lib/hooks";
 import { getFileIcon, formatFileSize } from "../lib/media-utils";
 import { cn } from "../lib/utils";
@@ -52,9 +52,13 @@ export function MediaDetailPanel({ item, onClose, onDeleted }: MediaDetailPanelP
 
 	// Update mutation
 	const updateMutation = useMutation({
-		mutationFn: (data: { alt?: string; caption?: string }) => {
+		mutationFn: async (data: { alt?: string; caption?: string }) => {
 			if (!item) throw new Error("No item selected");
-			return updateMedia(item.id, data);
+			if (item.provider) {
+				await updateProviderMedia(item.provider, item.id, data);
+				return;
+			}
+			await updateMedia(item.id, data);
 		},
 		onSuccess: () => {
 			// Invalidate to refresh the list
@@ -66,6 +70,9 @@ export function MediaDetailPanel({ item, onClose, onDeleted }: MediaDetailPanelP
 	const deleteMutation = useMutation({
 		mutationFn: () => {
 			if (!item) throw new Error("No item selected");
+			if (item.provider) {
+				return deleteFromProvider(item.provider, item.id);
+			}
 			return deleteMedia(item.id);
 		},
 		onSuccess: () => {
