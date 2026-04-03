@@ -58,7 +58,7 @@ const ROLE_ADMIN = 50;
  * when hashes are present), which would break user-facing pages.
  */
 function buildEmDashCsp(marketplaceUrl?: string): string {
-	const imgSources = ["'self'", "data:", "blob:"];
+	const imgSources = ["'self'", "data:", "blob:", "https://imagedelivery.net"];
 	if (marketplaceUrl) {
 		try {
 			imgSources.push(new URL(marketplaceUrl).origin);
