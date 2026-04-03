@@ -65,6 +65,7 @@ export {
 	fetchProviderMedia,
 	uploadToProvider,
 	deleteFromProvider,
+	updateProviderMedia,
 } from "./media.js";
 
 // Schema (Content Type Builder)

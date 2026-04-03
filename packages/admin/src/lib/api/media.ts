@@ -323,3 +323,23 @@ export async function deleteFromProvider(providerId: string, itemId: string): Pr
 	});
 	if (!response.ok) await throwResponseError(response, "Failed to delete from provider");
 }
+
+/**
+ * Update media metadata on a specific provider
+ */
+export async function updateProviderMedia(
+	providerId: string,
+	itemId: string,
+	input: { alt?: string; caption?: string },
+): Promise<MediaProviderItem> {
+	const response = await apiFetch(`${API_BASE}/media/providers/${providerId}/${itemId}`, {
+		method: "PUT",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(input),
+	});
+	const data = await parseApiResponse<{ item: MediaProviderItem }>(
+		response,
+		"Failed to update provider media",
+	);
+	return data.item;
+}
