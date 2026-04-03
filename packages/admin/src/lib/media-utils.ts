@@ -13,6 +13,7 @@ export function providerItemToMediaItem(
 		width: item.width,
 		height: item.height,
 		alt: item.alt,
+		caption: (item.meta?.caption as string) || undefined,
 		createdAt: new Date().toISOString(),
 		provider: providerId,
 		meta: item.meta,

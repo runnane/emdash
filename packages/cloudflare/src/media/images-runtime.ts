@@ -149,11 +149,13 @@ export const createMediaProvider: CreateMediaProviderFn<CloudflareImagesConfig> 
 						mimeType: "image/jpeg", // CF Images doesn't expose original mime type
 						width: dims?.width ?? toNumber(img.meta?.width),
 						height: dims?.height ?? toNumber(img.meta?.height),
+						alt: (img.meta?.alt as string) || undefined,
 						// Use 400px wide preview for grid thumbnails (good for 2x retina on ~200px grid)
 						previewUrl: buildUrl(img.id, { w: 400, fit: "scale-down" }),
 						meta: {
 							variants: img.variants,
 							uploaded: img.uploaded,
+							caption: (img.meta?.caption as string) || undefined,
 						},
 					};
 				}),
@@ -195,11 +197,13 @@ export const createMediaProvider: CreateMediaProviderFn<CloudflareImagesConfig> 
 				mimeType: "image/jpeg",
 				width: dims?.width ?? toNumber(img.meta?.width),
 				height: dims?.height ?? toNumber(img.meta?.height),
+				alt: (img.meta?.alt as string) || undefined,
 				// Use larger preview for detail view
 				previewUrl: buildUrl(img.id, { w: 800, fit: "scale-down" }),
 				meta: {
 					variants: img.variants,
 					uploaded: img.uploaded,
+					caption: (img.meta?.caption as string) || undefined,
 				},
 			};
 		},
