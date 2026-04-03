@@ -13,6 +13,7 @@ import type {
 	EmbedOptions,
 	EmbedResult,
 	CreateMediaProviderFn,
+	MediaProviderUpdateInput,
 } from "emdash/media";
 
 import type { CloudflareImagesConfig } from "./images.js";
@@ -271,6 +272,62 @@ export const createMediaProvider: CreateMediaProviderFn<CloudflareImagesConfig> 
 			if (!response.ok && response.status !== 404) {
 				throw new Error(`Cloudflare Images delete failed: ${response.status}`);
 			}
+		},
+
+		async update(id: string, input: MediaProviderUpdateInput) {
+			const apiBase = getApiBase();
+			const headers = getHeaders();
+
+			// Fetch existing image to get current metadata
+			const getResponse = await fetch(`${apiBase}/${id}`, { headers });
+			if (!getResponse.ok) {
+				throw new Error(`Cloudflare Images get failed: ${getResponse.status}`);
+			}
+			const getData = (await getResponse.json()) as {
+				result?: { meta?: Record<string, unknown>; filename?: string; variants?: string[] };
+			};
+			const existingMeta = (getData.result?.meta as Record<string, unknown>) ?? {};
+
+			// Merge alt/caption into CF Images metadata
+			const updatedMeta = { ...existingMeta };
+			if (input.alt !== undefined) updatedMeta.alt = input.alt;
+			if (input.caption !== undefined) updatedMeta.caption = input.caption;
+
+			const patchResponse = await fetch(`${apiBase}/${id}`, {
+				method: "PATCH",
+				headers: { ...headers, "Content-Type": "application/json" },
+				body: JSON.stringify({ metadata: updatedMeta }),
+			});
+
+			if (!patchResponse.ok) {
+				throw new Error(`Cloudflare Images update failed: ${patchResponse.status}`);
+			}
+
+			const data = (await patchResponse.json()) as {
+				result?: {
+					id: string;
+					filename?: string;
+					meta?: Record<string, unknown>;
+					variants?: string[];
+				};
+			};
+
+			const img = data.result;
+			if (!img) throw new Error("Cloudflare Images update returned no result");
+
+			return {
+				id: img.id,
+				filename: img.filename || id,
+				mimeType: "image/jpeg",
+				alt: (img.meta?.alt as string) || undefined,
+				width: toNumber(img.meta?.width),
+				height: toNumber(img.meta?.height),
+				previewUrl: buildUrl(img.id, { w: 400, fit: "scale-down" }),
+				meta: {
+					variants: img.variants,
+					caption: img.meta?.caption,
+				},
+			};
 		},
 
 		getEmbed(value: MediaValue, options?: EmbedOptions): EmbedResult {

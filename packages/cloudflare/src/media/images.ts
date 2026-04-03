@@ -108,6 +108,7 @@ export function cloudflareImages(
 			search: false, // Images API doesn't support search
 			upload: true,
 			delete: true,
+			update: true,
 		},
 		config,
 	};
