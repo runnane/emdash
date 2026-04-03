@@ -61,8 +61,9 @@ export function MediaDetailPanel({ item, onClose, onDeleted }: MediaDetailPanelP
 			await updateMedia(item.id, data);
 		},
 		onSuccess: () => {
-			// Invalidate to refresh the list
+			// Invalidate to refresh both local and provider media lists
 			void queryClient.invalidateQueries({ queryKey: ["media"] });
+			void queryClient.invalidateQueries({ queryKey: ["provider-media"] });
 		},
 	});
 

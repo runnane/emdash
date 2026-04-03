@@ -96,6 +96,22 @@ export function MediaLibrary({
 		}
 	}, [items, selectedItem?.id, activeProvider]);
 
+	// Update selected item when provider data refreshes (e.g., after metadata update)
+	React.useEffect(() => {
+		if (selectedItem && activeProvider !== "local" && providerData?.items) {
+			const updated = providerData.items.find((i) => i.id === selectedItem.id);
+			if (updated) {
+				const dims = loadedDimensions[updated.id];
+				const itemWithDims = dims
+					? { ...updated, width: updated.width ?? dims.width, height: updated.height ?? dims.height }
+					: updated;
+				setSelectedItem(providerItemToMediaItem(activeProvider, itemWithDims));
+			} else {
+				setSelectedItem(null);
+			}
+		}
+	}, [providerData, selectedItem?.id, activeProvider]);
+
 	// Clear success/error message after a delay
 	React.useEffect(() => {
 		if (uploadState.status === "success" || uploadState.status === "error") {
