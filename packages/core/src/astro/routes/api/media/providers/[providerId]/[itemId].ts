@@ -2,6 +2,7 @@
  * Media Provider Item Endpoint
  *
  * GET /_emdash/api/media/providers/:providerId/:itemId - Get single item
+ * PUT /_emdash/api/media/providers/:providerId/:itemId - Update item metadata
  * DELETE /_emdash/api/media/providers/:providerId/:itemId - Delete item
  */
 
@@ -49,6 +50,47 @@ export const GET: APIRoute = async ({ params, locals }) => {
 		return apiSuccess({ item });
 	} catch (error) {
 		return handleError(error, "Failed to get item from provider", "PROVIDER_GET_ERROR");
+	}
+};
+
+/**
+ * Update metadata for a media item in a provider
+ */
+export const PUT: APIRoute = async ({ params, request, locals }) => {
+	const { emdash } = locals;
+	const { providerId, itemId } = params;
+
+	if (!providerId || !itemId) {
+		return apiError("INVALID_REQUEST", "Provider ID and Item ID required", 400);
+	}
+
+	if (!emdash?.getMediaProvider) {
+		return apiError("NOT_CONFIGURED", "EmDash is not initialized", 500);
+	}
+
+	const provider = emdash.getMediaProvider(providerId);
+	if (!provider) {
+		return apiError("NOT_FOUND", `Provider "${providerId}" not found`, 404);
+	}
+
+	if (!provider.update) {
+		return apiError(
+			"NOT_SUPPORTED",
+			`Provider "${providerId}" does not support updating metadata`,
+			400,
+		);
+	}
+
+	try {
+		const body = await request.json() as { alt?: string; caption?: string };
+		const item = await provider.update(itemId, {
+			alt: body.alt,
+			caption: body.caption,
+		});
+
+		return apiSuccess({ item });
+	} catch (error) {
+		return handleError(error, "Failed to update item in provider", "PROVIDER_UPDATE_ERROR");
 	}
 };
 
