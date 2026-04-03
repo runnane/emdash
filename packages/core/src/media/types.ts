@@ -45,6 +45,8 @@ export interface MediaProviderCapabilities {
 	upload: boolean;
 	/** Can delete media */
 	delete: boolean;
+	/** Can update media metadata (alt, caption) */
+	update?: boolean;
 }
 
 /**
@@ -100,6 +102,14 @@ export interface MediaUploadInput {
 	file: File;
 	filename: string;
 	alt?: string;
+}
+
+/**
+ * Input for updating media metadata on a provider
+ */
+export interface MediaProviderUpdateInput {
+	alt?: string;
+	caption?: string;
 }
 
 /**
@@ -208,6 +218,11 @@ export interface MediaProvider {
 	 * Delete media (if capabilities.delete is true)
 	 */
 	delete?(id: string): Promise<void>;
+
+	/**
+	 * Update media metadata (if capabilities.update is true)
+	 */
+	update?(id: string, input: MediaProviderUpdateInput): Promise<MediaProviderItem>;
 
 	/**
 	 * Get embed information for rendering this media item

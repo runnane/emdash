@@ -12,6 +12,7 @@ export type {
 	MediaListResult,
 	MediaProviderItem,
 	MediaUploadInput,
+	MediaProviderUpdateInput,
 	EmbedOptions,
 	EmbedResult,
 	ImageEmbed,
