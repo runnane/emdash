@@ -83,15 +83,15 @@ export const createMediaProvider: CreateMediaProviderFn<CloudflareImagesConfig> 
 
 	// Fetch image dimensions via the format=json delivery endpoint
 	// This is a public endpoint that doesn't require authentication
-	const fetchDimensions = async (
+	const fetchImageInfo = async (
 		imageId: string,
-	): Promise<{ width: number; height: number } | null> => {
+	): Promise<{ width: number; height: number; fileSize: number } | null> => {
 		const url = `${getDeliveryBase()}/${getAccountHash()}/${imageId}/format=json`;
 		try {
 			const response = await fetch(url);
 			if (!response.ok) return null;
 			const data: ImageJsonResponse = await response.json();
-			return { width: data.width, height: data.height };
+			return { width: data.width, height: data.height, fileSize: data.original.file_size };
 		} catch {
 			return null;
 		}
@@ -128,27 +128,28 @@ export const createMediaProvider: CreateMediaProviderFn<CloudflareImagesConfig> 
 			// Filter out images that require signed URLs (not supported yet)
 			const publicImages = data.result.images.filter((img) => !img.requireSignedURLs);
 
-			// Fetch dimensions for all images in parallel
-			const dimensionsMap = new Map<string, { width: number; height: number }>();
-			const dimensionResults = await Promise.all(
+			// Fetch image info (dimensions + file size) for all images in parallel
+			const infoMap = new Map<string, { width: number; height: number; fileSize: number }>();
+			const infoResults = await Promise.all(
 				publicImages.map(async (img) => {
-					const dims = await fetchDimensions(img.id);
-					return { id: img.id, dims };
+					const info = await fetchImageInfo(img.id);
+					return { id: img.id, info };
 				}),
 			);
-			for (const { id, dims } of dimensionResults) {
-				if (dims) dimensionsMap.set(id, dims);
+			for (const { id, info } of infoResults) {
+				if (info) infoMap.set(id, info);
 			}
 
 			return {
 				items: publicImages.map((img) => {
-					const dims = dimensionsMap.get(img.id);
+					const info = infoMap.get(img.id);
 					return {
 						id: img.id,
 						filename: img.filename || img.id,
 						mimeType: "image/jpeg", // CF Images doesn't expose original mime type
-						width: dims?.width ?? toNumber(img.meta?.width),
-						height: dims?.height ?? toNumber(img.meta?.height),
+						size: info?.fileSize,
+						width: info?.width ?? toNumber(img.meta?.width),
+						height: info?.height ?? toNumber(img.meta?.height),
 						alt: (img.meta?.alt as string) || undefined,
 						// Use 400px wide preview for grid thumbnails (good for 2x retina on ~200px grid)
 						previewUrl: buildUrl(img.id, { w: 400, fit: "scale-down" }),
@@ -188,15 +189,16 @@ export const createMediaProvider: CreateMediaProviderFn<CloudflareImagesConfig> 
 				return null;
 			}
 
-			// Fetch dimensions via format=json endpoint
-			const dims = await fetchDimensions(img.id);
+			// Fetch image info (dimensions + file size) via format=json endpoint
+			const info = await fetchImageInfo(img.id);
 
 			return {
 				id: img.id,
 				filename: img.filename || img.id,
 				mimeType: "image/jpeg",
-				width: dims?.width ?? toNumber(img.meta?.width),
-				height: dims?.height ?? toNumber(img.meta?.height),
+				size: info?.fileSize,
+				width: info?.width ?? toNumber(img.meta?.width),
+				height: info?.height ?? toNumber(img.meta?.height),
 				alt: (img.meta?.alt as string) || undefined,
 				// Use larger preview for detail view
 				previewUrl: buildUrl(img.id, { w: 800, fit: "scale-down" }),

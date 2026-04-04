@@ -62,11 +62,42 @@ export function MediaDetailPanel({ item, onClose, onDeleted }: MediaDetailPanelP
 			if (!item) throw new Error("No item selected");
 			if (item.provider) {
 				await updateProviderMedia(item.provider, item.id, data);
-				return;
+				return data;
 			}
 			await updateMedia(item.id, data);
+			return data;
 		},
-		onSuccess: () => {
+		onSuccess: (data) => {
+			// Optimistically update the provider-media cache so the UI reflects
+			// the new values immediately, even if the provider API has eventual
+			// consistency (e.g. Cloudflare Images).
+			if (item?.provider && data) {
+				queryClient.setQueriesData<{
+					pages: Array<{ items: Array<Record<string, unknown>>; nextCursor?: string }>;
+					pageParams: unknown[];
+				}>({ queryKey: ["provider-media"] }, (old) => {
+					if (!old) return old;
+					return {
+						...old,
+						pages: old.pages.map((page) => ({
+							...page,
+							items: page.items.map((i) =>
+								i.id === item.id
+									? {
+											...i,
+											alt: data.alt ?? i.alt,
+											meta: {
+												...(i.meta as Record<string, unknown> | undefined),
+												caption:
+													data.caption ?? (i.meta as Record<string, unknown> | undefined)?.caption,
+											},
+										}
+									: i,
+							),
+						})),
+					};
+				});
+			}
 			// Invalidate to refresh both local and provider media lists
 			void queryClient.invalidateQueries({ queryKey: ["media"] });
 			void queryClient.invalidateQueries({ queryKey: ["provider-media"] });
