@@ -90,8 +90,9 @@ export async function requestSignup(
 		expiresAt: new Date(Date.now() + TOKEN_EXPIRY_MS),
 	});
 
-	// Build verification URL
-	const url = new URL("/api/auth/signup/verify", config.baseUrl);
+	// Build verification URL — use relative path to preserve baseUrl prefix (e.g. /_emdash)
+	const base = config.baseUrl.endsWith("/") ? config.baseUrl : `${config.baseUrl}/`;
+	const url = new URL("api/auth/signup/verify", base);
 	url.searchParams.set("token", token);
 
 	// Send email

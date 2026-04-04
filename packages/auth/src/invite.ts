@@ -67,8 +67,9 @@ export async function createInviteToken(
 		expiresAt: new Date(Date.now() + TOKEN_EXPIRY_MS),
 	});
 
-	// Build invite URL
-	const url = new URL("/api/auth/invite/accept", config.baseUrl);
+	// Build invite URL — use relative path to preserve baseUrl prefix (e.g. /_emdash)
+	const base = config.baseUrl.endsWith("/") ? config.baseUrl : `${config.baseUrl}/`;
+	const url = new URL(`api/auth/invite/accept`, base);
 	url.searchParams.set("token", token);
 
 	return { url: url.toString(), email };
