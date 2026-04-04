@@ -82,7 +82,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
 	}
 
 	try {
-		const body = await request.json() as { alt?: string; caption?: string };
+		const body = (await request.json()) as { alt?: string; caption?: string };
 		const item = await provider.update(itemId, {
 			alt: body.alt,
 			caption: body.caption,

@@ -9,7 +9,7 @@
 import { Button, Dialog, Input, Label, Loader } from "@cloudflare/kumo";
 import { Upload, Image, Check, Globe, MagnifyingGlass } from "@phosphor-icons/react";
 import { X } from "@phosphor-icons/react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 
 import {
@@ -117,25 +117,43 @@ export function MediaPickerModal({
 	}, [activeProvider, providers]);
 
 	// Fetch local media list
-	const { data: localData, isLoading: localLoading } = useQuery({
+	const {
+		data: localData,
+		isLoading: localLoading,
+		fetchNextPage: fetchNextLocalPage,
+		hasNextPage: hasNextLocalPage,
+		isFetchingNextPage: isFetchingNextLocalPage,
+	} = useInfiniteQuery({
 		queryKey: ["media", mimeTypeFilter],
-		queryFn: () =>
+		queryFn: ({ pageParam }) =>
 			fetchMediaList({
 				mimeType: mimeTypeFilter,
 				limit: 50,
+				cursor: pageParam,
 			}),
+		initialPageParam: undefined as string | undefined,
+		getNextPageParam: (lastPage) => lastPage.nextCursor,
 		enabled: open && activeProvider === "local",
 	});
 
 	// Fetch provider media list
-	const { data: providerData, isLoading: providerLoading } = useQuery({
+	const {
+		data: providerData,
+		isLoading: providerLoading,
+		fetchNextPage: fetchNextProviderPage,
+		hasNextPage: hasNextProviderPage,
+		isFetchingNextPage: isFetchingNextProviderPage,
+	} = useInfiniteQuery({
 		queryKey: ["provider-media", activeProvider, mimeTypeFilter, searchQuery],
-		queryFn: () =>
+		queryFn: ({ pageParam }) =>
 			fetchProviderMedia(activeProvider, {
 				mimeType: mimeTypeFilter,
 				limit: 50,
 				query: searchQuery || undefined,
+				cursor: pageParam,
 			}),
+		initialPageParam: undefined as string | undefined,
+		getNextPageParam: (lastPage) => lastPage.nextCursor,
 		enabled: open && activeProvider !== "local",
 	});
 
@@ -182,11 +200,18 @@ export function MediaPickerModal({
 		onSuccess: (_updated, { id, width, height }) => {
 			queryClient.setQueryData(
 				["media", mimeTypeFilter],
-				(old: { items: MediaItem[]; nextCursor?: string } | undefined) => {
+				(
+					old:
+						| { pages: Array<{ items: MediaItem[]; nextCursor?: string }>; pageParams: unknown[] }
+						| undefined,
+				) => {
 					if (!old) return old;
 					return {
 						...old,
-						items: old.items.map((item) => (item.id === id ? { ...item, width, height } : item)),
+						pages: old.pages.map((page) => ({
+							...page,
+							items: page.items.map((item) => (item.id === id ? { ...item, width, height } : item)),
+						})),
 					};
 				},
 			);
@@ -216,12 +241,12 @@ export function MediaPickerModal({
 	// Get items for current view
 	const items = React.useMemo(() => {
 		if (activeProvider === "local") {
-			const localItems = localData?.items || [];
+			const localItems = localData?.pages.flatMap((page) => page.items) ?? [];
 			if (!mimeTypeFilter) return localItems;
 			return localItems.filter((item) => item.mimeType.startsWith(mimeTypeFilter));
 		}
-		return providerData?.items || [];
-	}, [activeProvider, localData?.items, providerData?.items, mimeTypeFilter]);
+		return providerData?.pages.flatMap((page) => page.items) ?? [];
+	}, [activeProvider, localData, providerData, mimeTypeFilter]);
 
 	const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const files = e.target.files;
@@ -556,6 +581,32 @@ export function MediaPickerModal({
 										/>
 									))}
 						</ul>
+					)}
+					{/* Load More */}
+					{((activeProvider === "local" && hasNextLocalPage) ||
+						(activeProvider !== "local" && hasNextProviderPage)) && (
+						<div className="flex justify-center py-4">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => {
+									if (activeProvider === "local") {
+										void fetchNextLocalPage();
+									} else {
+										void fetchNextProviderPage();
+									}
+								}}
+								disabled={isFetchingNextLocalPage || isFetchingNextProviderPage}
+							>
+								{isFetchingNextLocalPage || isFetchingNextProviderPage ? (
+									<>
+										<Loader size="sm" /> Loading...
+									</>
+								) : (
+									"Load more"
+								)}
+							</Button>
+						</div>
 					)}
 				</div>
 

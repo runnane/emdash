@@ -10,7 +10,13 @@ import { X, Trash, Calendar, HardDrive, Ruler } from "@phosphor-icons/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 
-import { updateMedia, deleteMedia, deleteFromProvider, updateProviderMedia, type MediaItem } from "../lib/api";
+import {
+	updateMedia,
+	deleteMedia,
+	deleteFromProvider,
+	updateProviderMedia,
+	type MediaItem,
+} from "../lib/api";
 import { useStableCallback } from "../lib/hooks";
 import { getFileIcon, formatFileSize } from "../lib/media-utils";
 import { cn } from "../lib/utils";

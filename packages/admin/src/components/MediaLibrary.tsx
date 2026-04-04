@@ -1,6 +1,6 @@
 import { Button, Input, Loader } from "@cloudflare/kumo";
 import { Upload, Image, SquaresFour, List, MagnifyingGlass, Check, X } from "@phosphor-icons/react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import * as React from "react";
 
 import {
@@ -61,13 +61,19 @@ export function MediaLibrary({
 		data: providerData,
 		isLoading: providerLoading,
 		refetch: refetchProviderMedia,
-	} = useQuery({
+		fetchNextPage: fetchNextProviderPage,
+		hasNextPage: hasNextProviderPage,
+		isFetchingNextPage: isFetchingNextProviderPage,
+	} = useInfiniteQuery({
 		queryKey: ["provider-media", activeProvider, searchQuery],
-		queryFn: () =>
+		queryFn: ({ pageParam }) =>
 			fetchProviderMedia(activeProvider, {
 				limit: 50,
 				query: searchQuery || undefined,
+				cursor: pageParam,
 			}),
+		initialPageParam: undefined as string | undefined,
+		getNextPageParam: (lastPage) => lastPage.nextCursor,
 		enabled: activeProvider !== "local",
 	});
 
@@ -96,21 +102,31 @@ export function MediaLibrary({
 		}
 	}, [items, selectedItem?.id, activeProvider]);
 
+	// Flatten provider pages into a single items array
+	const providerItems = React.useMemo(
+		() => providerData?.pages.flatMap((page) => page.items) ?? [],
+		[providerData],
+	);
+
 	// Update selected item when provider data refreshes (e.g., after metadata update)
 	React.useEffect(() => {
-		if (selectedItem && activeProvider !== "local" && providerData?.items) {
-			const updated = providerData.items.find((i) => i.id === selectedItem.id);
+		if (selectedItem && activeProvider !== "local" && providerItems.length > 0) {
+			const updated = providerItems.find((i) => i.id === selectedItem.id);
 			if (updated) {
 				const dims = loadedDimensions[updated.id];
 				const itemWithDims = dims
-					? { ...updated, width: updated.width ?? dims.width, height: updated.height ?? dims.height }
+					? {
+							...updated,
+							width: updated.width ?? dims.width,
+							height: updated.height ?? dims.height,
+						}
 					: updated;
 				setSelectedItem(providerItemToMediaItem(activeProvider, itemWithDims));
 			} else {
 				setSelectedItem(null);
 			}
 		}
-	}, [providerData, selectedItem?.id, activeProvider]);
+	}, [providerItems, selectedItem?.id, activeProvider]);
 
 	// Clear success/error message after a delay
 	React.useEffect(() => {
@@ -226,7 +242,7 @@ export function MediaLibrary({
 
 	// Get current items based on active provider
 	const currentItems = activeProvider === "local" ? items : [];
-	const currentProviderItems = activeProvider !== "local" ? providerData?.items || [] : [];
+	const currentProviderItems = activeProvider !== "local" ? providerItems : [];
 	const currentLoading = activeProvider === "local" ? isLoading : providerLoading;
 
 	const canUpload = activeProviderInfo?.capabilities.upload ?? false;
@@ -471,6 +487,25 @@ export function MediaLibrary({
 									))}
 						</tbody>
 					</table>
+				</div>
+			)}
+
+			{/* Load More (provider pagination) */}
+			{activeProvider !== "local" && hasNextProviderPage && (
+				<div className="flex justify-center pt-4">
+					<Button
+						variant="outline"
+						onClick={() => void fetchNextProviderPage()}
+						disabled={isFetchingNextProviderPage}
+					>
+						{isFetchingNextProviderPage ? (
+							<>
+								<Loader size="sm" /> Loading...
+							</>
+						) : (
+							"Load more"
+						)}
+					</Button>
 				</div>
 			)}
 
