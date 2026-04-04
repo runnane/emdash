@@ -135,7 +135,7 @@ function ImageNodeView({ node, updateAttributes, selected, deleteNode, editor }:
 	return (
 		<NodeViewWrapper
 			className={cn(
-				"relative my-4 group",
+				"relative group inline-block align-top m-1",
 				selected && "ring-2 ring-kumo-brand ring-offset-2 rounded-lg",
 			)}
 		>
@@ -144,10 +144,10 @@ function ImageNodeView({ node, updateAttributes, selected, deleteNode, editor }:
 					src={node.attrs.src}
 					alt={node.attrs.alt || ""}
 					title={node.attrs.title || ""}
-					className="rounded-lg max-w-full mx-auto"
+					className="rounded-lg object-cover"
 					style={{
-						width: node.attrs.displayWidth ? `${node.attrs.displayWidth}px` : undefined,
-						height: node.attrs.displayHeight ? `${node.attrs.displayHeight}px` : undefined,
+						width: "120px",
+						height: "90px",
 					}}
 					draggable={false}
 				/>
@@ -239,12 +239,7 @@ function ImageNodeView({ node, updateAttributes, selected, deleteNode, editor }:
 					</div>
 				)}
 
-				{/* Caption display (shows caption if set, falls back to alt) */}
-				{!isEditingAlt && (node.attrs.caption || node.attrs.alt) && (
-					<figcaption className="text-center text-sm text-kumo-subtle mt-2">
-						{node.attrs.caption || node.attrs.alt}
-					</figcaption>
-				)}
+				{/* Caption display — hidden in compact mode */}
 			</figure>
 		</NodeViewWrapper>
 	);
