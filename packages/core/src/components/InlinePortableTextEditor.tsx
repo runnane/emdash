@@ -1899,6 +1899,20 @@ export function InlinePortableTextEditor({
 				.emdash-inline-editor:focus {
 					outline: none;
 				}
+				/* Compact image grid in editor: consecutive images display as small thumbnails */
+				.emdash-inline-editor img {
+					display: inline-block;
+					max-width: 120px;
+					max-height: 90px;
+					object-fit: cover;
+					margin: 2px;
+					border-radius: 4px;
+					cursor: pointer;
+					vertical-align: top;
+				}
+				.emdash-inline-editor img.ProseMirror-selectednode {
+					outline: 2px solid #3b82f6;
+				}
 			`}</style>
 		</div>
 	);
