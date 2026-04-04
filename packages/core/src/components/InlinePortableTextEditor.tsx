@@ -1899,19 +1899,29 @@ export function InlinePortableTextEditor({
 				.emdash-inline-editor:focus {
 					outline: none;
 				}
-				/* Compact image grid in editor: consecutive images display as small thumbnails */
-				.emdash-inline-editor img {
-					display: inline-block;
-					max-width: 120px;
-					max-height: 90px;
-					object-fit: cover;
-					margin: 2px;
-					border-radius: 4px;
-					cursor: pointer;
-					vertical-align: top;
+				/* Compact image thumbnails in editor */
+				.emdash-inline-editor div[data-node="image"] {
+					display: inline-flex !important;
+					width: auto !important;
+					max-width: 120px !important;
+					vertical-align: top !important;
+					margin: 2px !important;
 				}
-				.emdash-inline-editor img.ProseMirror-selectednode {
-					outline: 2px solid #3b82f6;
+				.emdash-inline-editor div[data-node="image"] div[data-resize-wrapper] {
+					display: inline-block !important;
+				}
+				.emdash-inline-editor div[data-node="image"] img {
+					max-width: 120px !important;
+					max-height: 90px !important;
+					width: auto !important;
+					height: auto !important;
+					object-fit: cover !important;
+					border-radius: 4px !important;
+					cursor: pointer !important;
+				}
+				.emdash-inline-editor div[data-node="image"].ProseMirror-selectednode {
+					outline: 2px solid #3b82f6 !important;
+					border-radius: 4px !important;
 				}
 			`}</style>
 		</div>
