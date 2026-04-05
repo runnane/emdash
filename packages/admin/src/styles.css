@@ -204,10 +204,9 @@ body {
 
 /**
  * Gallery grouping decorations in the portableText editor.
- * Consecutive image nodes are wrapped in a visual container.
+ * Consecutive image nodes are visually grouped.
  */
 .emdash-gallery-label {
-	display: block;
 	font-size: 0.7rem;
 	font-weight: 600;
 	text-transform: uppercase;
@@ -217,19 +216,34 @@ body {
 	border: 1px solid var(--color-kumo-line);
 	border-bottom: none;
 	border-radius: 0.375rem 0.375rem 0 0;
-	padding: 0.25rem 0.5rem;
+	padding: 0.25rem 0.75rem;
 	margin-top: 0.5rem;
 }
 
-.emdash-gallery-group {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.25rem;
-	padding: 0.5rem;
-	background: var(--color-kumo-tint);
-	border: 1px solid var(--color-kumo-line);
-	border-radius: 0 0 0.375rem 0.375rem;
+.emdash-gallery-end {
+	border-top: 1px solid var(--color-kumo-line);
 	margin-bottom: 0.5rem;
+}
+
+/* Gallery images: compact inline layout */
+.ProseMirror .emdash-in-gallery {
+	display: inline-block !important;
+	margin: 0 !important;
+	padding: 0.25rem;
+	vertical-align: top;
+	background: var(--color-kumo-tint);
+	border-left: 1px solid var(--color-kumo-line);
+	border-right: 1px solid var(--color-kumo-line);
+}
+
+.ProseMirror .emdash-gallery-first {
+	border-top: 1px solid var(--color-kumo-line);
+	padding-top: 0.375rem;
+}
+
+.ProseMirror .emdash-gallery-last {
+	border-bottom: none;
+	padding-bottom: 0.375rem;
 }
 
 .emdash-image-alt-label {

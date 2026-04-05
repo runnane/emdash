@@ -355,41 +355,56 @@ export const ImageExtension = Node.create({
 					decorations(state) {
 						const decorations: Decoration[] = [];
 						const { doc } = state;
-						let runStart = -1;
-						let runCount = 0;
 
-						const flushRun = (end: number) => {
-							if (runCount >= 2) {
-								decorations.push(
-									Decoration.widget(runStart, () => {
-										const label = document.createElement("div");
-										label.className = "emdash-gallery-label";
-										label.textContent = `Gallery (${runCount} images)`;
-										return label;
-									}, { side: -1 }),
-								);
-								decorations.push(
-									Decoration.node(runStart, end, {
-										class: "emdash-gallery-group",
-									}),
-								);
-							}
-							runStart = -1;
-							runCount = 0;
-						};
+						// Collect runs of consecutive image nodes
+						type ImgInfo = { pos: number; size: number };
+						const runs: ImgInfo[][] = [];
+						let current: ImgInfo[] = [];
 
 						doc.forEach((node, offset) => {
 							if (node.type.name === "image") {
-								if (runStart === -1) {
-									runStart = offset;
-								}
-								runCount++;
+								current.push({ pos: offset, size: node.nodeSize });
 							} else {
-								flushRun(offset);
+								if (current.length >= 2) runs.push(current);
+								current = [];
 							}
 						});
-						// Flush any trailing run
-						flushRun(doc.content.size);
+						if (current.length >= 2) runs.push(current);
+
+						for (const run of runs) {
+							const count = run.length;
+
+							// Label widget before the first image
+							decorations.push(
+								Decoration.widget(run[0].pos, () => {
+									const label = document.createElement("div");
+									label.className = "emdash-gallery-label";
+									label.textContent = `Gallery (${count} images)`;
+									return label;
+								}, { side: -1, key: `gallery-label-${run[0].pos}` }),
+							);
+
+							// Mark each image node individually
+							for (let i = 0; i < run.length; i++) {
+								const { pos, size } = run[i];
+								let cls = "emdash-in-gallery";
+								if (i === 0) cls += " emdash-gallery-first";
+								if (i === run.length - 1) cls += " emdash-gallery-last";
+								decorations.push(
+									Decoration.node(pos, pos + size, { class: cls }),
+								);
+							}
+
+							// End marker widget after the last image
+							const last = run[run.length - 1];
+							decorations.push(
+								Decoration.widget(last.pos + last.size, () => {
+									const end = document.createElement("div");
+									end.className = "emdash-gallery-end";
+									return end;
+								}, { side: 1, key: `gallery-end-${last.pos}` }),
+							);
+						}
 
 						return DecorationSet.create(doc, decorations);
 					},

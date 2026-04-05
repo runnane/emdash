@@ -270,6 +270,13 @@ async function handleEmDashAuth(
 	const isLoginRoute = url.pathname.startsWith("/_emdash/admin/login");
 	const isApiRoute = url.pathname.startsWith("/_emdash/api");
 
+	// These admin pages must be accessible without authentication:
+	// invite (accept invite + register passkey), signup (self-signup), device (device auth)
+	const isUnauthenticatedRoute =
+		url.pathname.startsWith("/_emdash/admin/invite") ||
+		url.pathname.startsWith("/_emdash/admin/signup") ||
+		url.pathname.startsWith("/_emdash/admin/device");
+
 	if (!emdash?.db) {
 		// No database - let the admin handle this error
 		return next();
@@ -281,7 +288,7 @@ async function handleEmDashAuth(
 	if (authMode.type === "external") {
 		// In dev mode, fall back to passkey auth since external JWT won't be present
 		if (import.meta.env.DEV) {
-			if (isLoginRoute) {
+			if (isLoginRoute || isUnauthenticatedRoute) {
 				return next();
 			}
 
@@ -293,7 +300,7 @@ async function handleEmDashAuth(
 	}
 
 	// Passkey authentication (default)
-	if (isLoginRoute) {
+	if (isLoginRoute || isUnauthenticatedRoute) {
 		return next();
 	}
 
