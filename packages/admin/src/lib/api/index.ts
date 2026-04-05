@@ -115,6 +115,7 @@ export {
 	type CreateAllowedDomainInput,
 	type UpdateAllowedDomainInput,
 	type SignupVerifyResult,
+	type InviteVerifyResult,
 	fetchUsers,
 	fetchUser,
 	updateUser,
@@ -132,6 +133,7 @@ export {
 	requestSignup,
 	verifySignupToken,
 	completeSignup,
+	verifyInviteToken,
 	hasAllowedDomains,
 } from "./users.js";
 

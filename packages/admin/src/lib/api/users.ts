@@ -392,6 +392,46 @@ export async function completeSignup(
 	}>(response, "Signup completion failed");
 }
 
+// =============================================================================
+// Invite Verification API
+// =============================================================================
+
+/** Invite verification result */
+export interface InviteVerifyResult {
+	email: string;
+	role: number;
+	roleName: string;
+}
+
+/**
+ * Verify an invite token
+ *
+ * Uses custom error handling to preserve error codes for the UI.
+ */
+export async function verifyInviteToken(token: string): Promise<InviteVerifyResult> {
+	const response = await apiFetch(
+		`${API_BASE}/auth/invite/accept?token=${encodeURIComponent(token)}`,
+	);
+
+	if (!response.ok) {
+		const errorData: unknown = await response.json().catch(() => ({}));
+		let message = `Token verification failed: ${response.statusText}`;
+		let code: string | undefined;
+		if (typeof errorData === "object" && errorData !== null && "error" in errorData) {
+			const err = errorData.error;
+			if (typeof err === "object" && err !== null) {
+				if ("message" in err && typeof err.message === "string") message = err.message;
+				if ("code" in err && typeof err.code === "string") code = err.code;
+			}
+		}
+		const error: Error & { code?: string } = new Error(message);
+		error.code = code;
+		throw error;
+	}
+
+	return parseApiResponse<InviteVerifyResult>(response, "Token verification failed");
+}
+
 /**
  * Check if any allowed domains exist (for showing signup link)
  */

@@ -23,7 +23,7 @@ describe("createInviteToken", () => {
 		);
 
 		const url = new URL(result.url);
-		expect(url.pathname).toBe("/_emdash/api/auth/invite/accept");
+		expect(url.pathname).toBe("/_emdash/admin/invite");
 		expect(url.searchParams.get("token")).toBeTruthy();
 	});
 
@@ -37,7 +37,7 @@ describe("createInviteToken", () => {
 		);
 
 		const url = new URL(result.url);
-		expect(url.pathname).toBe("/api/auth/invite/accept");
+		expect(url.pathname).toBe("/admin/invite");
 	});
 
 	it("works with trailing slash on baseUrl", async () => {
@@ -50,6 +50,6 @@ describe("createInviteToken", () => {
 		);
 
 		const url = new URL(result.url);
-		expect(url.pathname).toBe("/_emdash/api/auth/invite/accept");
+		expect(url.pathname).toBe("/_emdash/admin/invite");
 	});
 });

@@ -69,7 +69,7 @@ export async function createInviteToken(
 
 	// Build invite URL — use relative path to preserve baseUrl prefix (e.g. /_emdash)
 	const base = config.baseUrl.endsWith("/") ? config.baseUrl : `${config.baseUrl}/`;
-	const url = new URL(`api/auth/invite/accept`, base);
+	const url = new URL(`admin/invite`, base);
 	url.searchParams.set("token", token);
 
 	return { url: url.toString(), email };
