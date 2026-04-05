@@ -39,6 +39,7 @@ import {
 	CodeBlock,
 	Stack,
 	Eye,
+	BracketsCurly,
 	type Icon,
 } from "@phosphor-icons/react";
 import { X } from "@phosphor-icons/react";
@@ -1352,6 +1353,11 @@ export function PortableTextEditor({
 		onChangeRef.current = onChange;
 	}, [onChange]);
 
+	// Source view state (JSON editing)
+	const [sourceView, setSourceView] = React.useState(false);
+	const [sourceText, setSourceText] = React.useState("");
+	const [sourceError, setSourceError] = React.useState<string | null>(null);
+
 	// Focus mode state - support both controlled and uncontrolled modes
 	const [internalFocusMode, setInternalFocusMode] = React.useState<FocusMode>("normal");
 	const focusMode = controlledFocusMode ?? internalFocusMode;
@@ -1564,6 +1570,36 @@ export function PortableTextEditor({
 		}
 	}, [editor, onEditorReady]);
 
+	// Source view toggle handlers
+	const handleSourceViewToggle = React.useCallback(() => {
+		if (!editor) return;
+		if (!sourceView) {
+			// Entering source view — snapshot current Portable Text
+			const doc = editor.getJSON();
+			const pmDoc = doc as Parameters<typeof prosemirrorToPortableText>[0];
+			const portableText = prosemirrorToPortableText(pmDoc);
+			setSourceText(JSON.stringify(portableText, null, 2));
+			setSourceError(null);
+			setSourceView(true);
+		} else {
+			// Leaving source view — apply edits back
+			try {
+				const parsed = JSON.parse(sourceText) as PortableTextBlock[];
+				if (!Array.isArray(parsed)) {
+					setSourceError("Content must be a JSON array");
+					return;
+				}
+				const pmDoc = portableTextToProsemirror(parsed);
+				editor.commands.setContent(pmDoc as Parameters<typeof editor.commands.setContent>[0]);
+				onChangeRef.current?.(parsed);
+				setSourceError(null);
+				setSourceView(false);
+			} catch (err) {
+				setSourceError(err instanceof Error ? err.message : "Invalid JSON");
+			}
+		}
+	}, [editor, sourceView, sourceText]);
+
 	// Register plugin blocks into editor storage so the node view can look up metadata
 	React.useEffect(() => {
 		if (editor) {
@@ -1733,13 +1769,40 @@ export function PortableTextEditor({
 			aria-labelledby={ariaLabelledby}
 		>
 			{!minimal && (
-				<EditorToolbar editor={editor} focusMode={focusMode} onFocusModeChange={setFocusMode} />
+				<EditorToolbar
+					editor={editor}
+					focusMode={focusMode}
+					onFocusModeChange={setFocusMode}
+					sourceView={sourceView}
+					onSourceViewToggle={handleSourceViewToggle}
+				/>
 			)}
-			<EditorBubbleMenu editor={editor} />
-			<div className="relative overflow-visible">
-				<EditorContent editor={editor} />
-				{editable && <DragHandleWrapper editor={editor} />}
-			</div>
+			{sourceView ? (
+				<div className="relative">
+					<textarea
+						value={sourceText}
+						onChange={(e) => {
+							setSourceText(e.target.value);
+							setSourceError(null);
+						}}
+						className="w-full min-h-[400px] p-4 font-mono text-sm bg-kumo-base text-kumo-default border-0 focus:outline-none resize-y"
+						spellCheck={false}
+					/>
+					{sourceError && (
+						<div className="px-4 py-2 text-sm text-kumo-danger bg-kumo-danger/10 border-t">
+							{sourceError}
+						</div>
+					)}
+				</div>
+			) : (
+				<>
+					<EditorBubbleMenu editor={editor} />
+					<div className="relative overflow-visible">
+						<EditorContent editor={editor} />
+						{editable && <DragHandleWrapper editor={editor} />}
+					</div>
+				</>
+			)}
 			{!minimal && <EditorFooter editor={editor} />}
 
 			{/* Slash command menu */}
@@ -1963,10 +2026,14 @@ function EditorToolbar({
 	editor,
 	focusMode,
 	onFocusModeChange,
+	sourceView,
+	onSourceViewToggle,
 }: {
 	editor: Editor;
 	focusMode: FocusMode;
 	onFocusModeChange: (mode: FocusMode) => void;
+	sourceView: boolean;
+	onSourceViewToggle: () => void;
 }) {
 	const [mediaPickerOpen, setMediaPickerOpen] = React.useState(false);
 	const [showLinkPopover, setShowLinkPopover] = React.useState(false);
@@ -2322,7 +2389,7 @@ function EditorToolbar({
 
 			<ToolbarSeparator aria-hidden="true" />
 
-			{/* Focus mode */}
+			{/* Focus mode & Source view */}
 			<ToolbarGroup>
 				<ToolbarButton
 					onClick={() => onFocusModeChange(focusMode === "spotlight" ? "normal" : "spotlight")}
@@ -2330,6 +2397,13 @@ function EditorToolbar({
 					title={focusMode === "spotlight" ? "Exit Spotlight Mode" : "Spotlight Mode"}
 				>
 					<Eye className="h-4 w-4" aria-hidden="true" />
+				</ToolbarButton>
+				<ToolbarButton
+					onClick={onSourceViewToggle}
+					active={sourceView}
+					title={sourceView ? "Back to Visual Editor" : "Edit Source (JSON)"}
+				>
+					<BracketsCurly className="h-4 w-4" aria-hidden="true" />
 				</ToolbarButton>
 			</ToolbarGroup>
 

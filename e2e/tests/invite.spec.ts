@@ -14,6 +14,8 @@
 
 import { test, expect } from "../fixtures";
 
+const INVITE_URL_PATTERN = /\/invite\?token=/;
+
 function apiHeaders(token: string, baseUrl: string) {
 	return {
 		"Content-Type": "application/json",
@@ -54,7 +56,7 @@ test.describe("Invite Page", () => {
 		await page.goto(inviteUrl);
 
 		// Should end up on the invite page, not a JSON response
-		await expect(page).toHaveURL(/\/invite\?token=/);
+		await expect(page).toHaveURL(INVITE_URL_PATTERN);
 
 		// Should show the invite page heading
 		await expect(page.locator("h1")).toContainText("Accept Invite");
