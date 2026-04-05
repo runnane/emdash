@@ -14,6 +14,8 @@ import { Trash, Pencil, X, Check, SlidersHorizontal } from "@phosphor-icons/reac
 import type { NodeViewProps } from "@tiptap/react";
 import { Node, mergeAttributes } from "@tiptap/react";
 import { ReactNodeViewRenderer, NodeViewWrapper } from "@tiptap/react";
+import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { DecorationSet, Decoration } from "@tiptap/pm/view";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
@@ -135,8 +137,8 @@ function ImageNodeView({ node, updateAttributes, selected, deleteNode, editor }:
 	return (
 		<NodeViewWrapper
 			className={cn(
-				"relative group inline-block align-top m-1",
-				selected && "ring-2 ring-kumo-brand ring-offset-2 rounded-lg",
+				"relative group inline-block align-top m-0.5",
+				selected && "ring-2 ring-kumo-brand ring-offset-1 rounded-md",
 			)}
 		>
 			<figure className="relative">
@@ -144,13 +146,19 @@ function ImageNodeView({ node, updateAttributes, selected, deleteNode, editor }:
 					src={node.attrs.src}
 					alt={node.attrs.alt || ""}
 					title={node.attrs.title || ""}
-					className="rounded-lg object-cover"
+					className="rounded-md object-cover"
 					style={{
-						width: "120px",
-						height: "90px",
+						width: "80px",
+						height: "60px",
 					}}
 					draggable={false}
 				/>
+				{/* Alt text label */}
+				{node.attrs.alt && !isEditingAlt && (
+					<div className="emdash-image-alt-label" title={node.attrs.alt}>
+						{node.attrs.alt}
+					</div>
+				)}
 
 				{/* Selection overlay with actions */}
 				{selected && (
@@ -335,6 +343,59 @@ export const ImageExtension = Node.create({
 
 	addNodeView() {
 		return ReactNodeViewRenderer(ImageNodeView);
+	},
+
+	addProseMirrorPlugins() {
+		const galleryPluginKey = new PluginKey("imageGalleryDecorations");
+
+		return [
+			new Plugin({
+				key: galleryPluginKey,
+				props: {
+					decorations(state) {
+						const decorations: Decoration[] = [];
+						const { doc } = state;
+						let runStart = -1;
+						let runCount = 0;
+
+						const flushRun = (end: number) => {
+							if (runCount >= 2) {
+								decorations.push(
+									Decoration.widget(runStart, () => {
+										const label = document.createElement("div");
+										label.className = "emdash-gallery-label";
+										label.textContent = `Gallery (${runCount} images)`;
+										return label;
+									}, { side: -1 }),
+								);
+								decorations.push(
+									Decoration.node(runStart, end, {
+										class: "emdash-gallery-group",
+									}),
+								);
+							}
+							runStart = -1;
+							runCount = 0;
+						};
+
+						doc.forEach((node, offset) => {
+							if (node.type.name === "image") {
+								if (runStart === -1) {
+									runStart = offset;
+								}
+								runCount++;
+							} else {
+								flushRun(offset);
+							}
+						});
+						// Flush any trailing run
+						flushRun(doc.content.size);
+
+						return DecorationSet.create(doc, decorations);
+					},
+				},
+			}),
+		];
 	},
 
 	addCommands() {

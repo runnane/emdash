@@ -203,6 +203,53 @@ body {
 }
 
 /**
+ * Gallery grouping decorations in the portableText editor.
+ * Consecutive image nodes are wrapped in a visual container.
+ */
+.emdash-gallery-label {
+	display: block;
+	font-size: 0.7rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--text-color-kumo-subtle);
+	background: var(--color-kumo-tint);
+	border: 1px solid var(--color-kumo-line);
+	border-bottom: none;
+	border-radius: 0.375rem 0.375rem 0 0;
+	padding: 0.25rem 0.5rem;
+	margin-top: 0.5rem;
+}
+
+.emdash-gallery-group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+	padding: 0.5rem;
+	background: var(--color-kumo-tint);
+	border: 1px solid var(--color-kumo-line);
+	border-radius: 0 0 0.375rem 0.375rem;
+	margin-bottom: 0.5rem;
+}
+
+.emdash-image-alt-label {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	font-size: 0.55rem;
+	line-height: 1.2;
+	color: #fff;
+	background: rgba(0, 0, 0, 0.6);
+	padding: 1px 3px;
+	border-radius: 0 0 0.375rem 0.375rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	pointer-events: none;
+}
+
+/**
  * Isolate the admin root's stacking context.
  */
 #admin-root {
