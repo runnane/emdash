@@ -17,8 +17,8 @@ import {
 } from "@emdash-cms/auth";
 import { createKyselyAdapter } from "@emdash-cms/auth/adapters/kysely";
 
-import { createOAuthStateStore } from "#auth/oauth-state-store.js";
 import { isInviteOnly } from "#auth/mode.js";
+import { createOAuthStateStore } from "#auth/oauth-state-store.js";
 
 type ProviderName = "github" | "google";
 

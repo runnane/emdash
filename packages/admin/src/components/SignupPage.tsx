@@ -15,7 +15,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import * as React from "react";
 
-import { fetchManifest, requestSignup, verifySignupToken, type SignupVerifyResult } from "../lib/api";
+import {
+	fetchManifest,
+	requestSignup,
+	verifySignupToken,
+	type SignupVerifyResult,
+} from "../lib/api";
 import { PasskeyRegistration } from "./auth/PasskeyRegistration";
 import { LogoLockup } from "./Logo.js";
 
