@@ -11,11 +11,11 @@
 
 import { Button, Input } from "@cloudflare/kumo";
 import { Trash, Pencil, X, Check, SlidersHorizontal } from "@phosphor-icons/react";
+import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { DecorationSet, Decoration } from "@tiptap/pm/view";
 import type { NodeViewProps } from "@tiptap/react";
 import { Node, mergeAttributes } from "@tiptap/react";
 import { ReactNodeViewRenderer, NodeViewWrapper } from "@tiptap/react";
-import { Plugin, PluginKey } from "@tiptap/pm/state";
-import { DecorationSet, Decoration } from "@tiptap/pm/view";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
@@ -376,12 +376,16 @@ export const ImageExtension = Node.create({
 
 							// Label widget before the first image
 							decorations.push(
-								Decoration.widget(run[0].pos, () => {
-									const label = document.createElement("div");
-									label.className = "emdash-gallery-label";
-									label.textContent = `Gallery (${count} images)`;
-									return label;
-								}, { side: -1, key: `gallery-label-${run[0].pos}` }),
+								Decoration.widget(
+									run[0].pos,
+									() => {
+										const label = document.createElement("div");
+										label.className = "emdash-gallery-label";
+										label.textContent = `Gallery (${count} images)`;
+										return label;
+									},
+									{ side: -1, key: `gallery-label-${run[0].pos}` },
+								),
 							);
 
 							// Mark each image node individually
@@ -390,19 +394,21 @@ export const ImageExtension = Node.create({
 								let cls = "emdash-in-gallery";
 								if (i === 0) cls += " emdash-gallery-first";
 								if (i === run.length - 1) cls += " emdash-gallery-last";
-								decorations.push(
-									Decoration.node(pos, pos + size, { class: cls }),
-								);
+								decorations.push(Decoration.node(pos, pos + size, { class: cls }));
 							}
 
 							// End marker widget after the last image
 							const last = run[run.length - 1];
 							decorations.push(
-								Decoration.widget(last.pos + last.size, () => {
-									const end = document.createElement("div");
-									end.className = "emdash-gallery-end";
-									return end;
-								}, { side: 1, key: `gallery-end-${last.pos}` }),
+								Decoration.widget(
+									last.pos + last.size,
+									() => {
+										const end = document.createElement("div");
+										end.className = "emdash-gallery-end";
+										return end;
+									},
+									{ side: 1, key: `gallery-end-${last.pos}` },
+								),
 							);
 						}
 

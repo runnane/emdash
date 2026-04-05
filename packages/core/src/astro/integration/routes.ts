@@ -783,6 +783,11 @@ export function injectBuiltinAuthRoutes(injectRoute: InjectRoute): void {
 		entrypoint: resolveRoute("api/auth/invite/complete.ts"),
 	});
 
+	injectRoute({
+		pattern: "/_emdash/api/auth/invite/options",
+		entrypoint: resolveRoute("api/auth/invite/options.ts"),
+	});
+
 	// Magic link routes
 	injectRoute({
 		pattern: "/_emdash/api/auth/magic-link/send",
@@ -819,6 +824,11 @@ export function injectBuiltinAuthRoutes(injectRoute: InjectRoute): void {
 	injectRoute({
 		pattern: "/_emdash/api/auth/signup/complete",
 		entrypoint: resolveRoute("api/auth/signup/complete.ts"),
+	});
+
+	injectRoute({
+		pattern: "/_emdash/api/auth/signup/options",
+		entrypoint: resolveRoute("api/auth/signup/options.ts"),
 	});
 
 	// Allowed domains admin routes (only relevant for passkey mode)

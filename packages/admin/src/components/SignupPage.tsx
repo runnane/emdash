@@ -210,7 +210,7 @@ function VerifyStep({ verifyResult, token, onBack: _onBack }: VerifyStepProps) {
 				</p>
 
 				<PasskeyRegistration
-					optionsEndpoint="/_emdash/api/setup/admin"
+					optionsEndpoint="/_emdash/api/auth/signup/options"
 					verifyEndpoint="/_emdash/api/auth/signup/complete"
 					onSuccess={handleSignupSuccess}
 					buttonText="Create Account"
