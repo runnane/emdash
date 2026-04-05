@@ -17,6 +17,7 @@ import { z } from "astro/zod";
 import { apiError, apiSuccess, handleError } from "#api/error.js";
 import { isParseError, parseBody } from "#api/parse.js";
 import { createChallengeStore } from "#auth/challenge-store.js";
+import { isInviteOnly } from "#auth/mode.js";
 import { getPasskeyConfig } from "#auth/passkey-config.js";
 import { OptionsRepository } from "#db/repositories/options.js";
 
@@ -29,6 +30,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
 	if (!emdash?.db) {
 		return apiError("NOT_CONFIGURED", "EmDash is not initialized", 500);
+	}
+
+	if (isInviteOnly()) {
+		return apiError("SIGNUP_DISABLED", "Self-signup is disabled. Please request an invite.", 403);
 	}
 
 	try {

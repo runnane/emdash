@@ -111,6 +111,11 @@ export interface EmDashManifest {
 	 */
 	signupEnabled?: boolean;
 	/**
+	 * Whether invite-only mode is active (EMDASH_INVITE_ONLY=true).
+	 * When true, self-signup and OAuth are disabled in the UI and API.
+	 */
+	inviteOnly?: boolean;
+	/**
 	 * i18n configuration from Astro config.
 	 * Only present when i18n is enabled (multiple locales configured).
 	 */

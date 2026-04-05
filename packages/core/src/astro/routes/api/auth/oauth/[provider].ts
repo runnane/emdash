@@ -10,6 +10,7 @@ export const prerender = false;
 
 import { createAuthorizationUrl, type OAuthConsumerConfig } from "@emdash-cms/auth";
 
+import { isInviteOnly } from "#auth/mode.js";
 import { createOAuthStateStore } from "#auth/oauth-state-store.js";
 
 type ProviderName = "github" | "google";
@@ -69,6 +70,13 @@ function getOAuthConfig(env: Record<string, unknown>): OAuthConsumerConfig["prov
 export const GET: APIRoute = async ({ params, request, locals, redirect }) => {
 	const { emdash } = locals;
 	const provider = params.provider;
+
+	// Invite-only mode disables OAuth
+	if (isInviteOnly()) {
+		return redirect(
+			`/_emdash/admin/login?error=oauth_disabled&message=${encodeURIComponent("OAuth login is disabled. Please use a passkey or email link to sign in.")}`,
+		);
+	}
 
 	// Validate provider
 	if (!provider || !isValidProvider(provider)) {

@@ -11,10 +11,11 @@
  */
 
 import { Button, Input, Loader } from "@cloudflare/kumo";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import * as React from "react";
 
-import { requestSignup, verifySignupToken, type SignupVerifyResult } from "../lib/api";
+import { fetchManifest, requestSignup, verifySignupToken, type SignupVerifyResult } from "../lib/api";
 import { PasskeyRegistration } from "./auth/PasskeyRegistration";
 import { LogoLockup } from "./Logo.js";
 
@@ -295,6 +296,19 @@ export function SignupPage() {
 	const [token, setToken] = React.useState<string | null>(null);
 	const [resendCooldown, setResendCooldown] = React.useState(0);
 
+	// Check if invite-only mode is active
+	const { data: manifest, isLoading: manifestLoading } = useQuery({
+		queryKey: ["manifest"],
+		queryFn: fetchManifest,
+	});
+
+	// Redirect to login when invite-only mode is active
+	React.useEffect(() => {
+		if (manifest?.inviteOnly) {
+			window.location.href = "/_emdash/admin/login";
+		}
+	}, [manifest]);
+
 	// Check for token in URL on mount
 	React.useEffect(() => {
 		const params = new URLSearchParams(window.location.search);
@@ -372,8 +386,8 @@ export function SignupPage() {
 		window.history.replaceState({}, "", window.location.pathname);
 	};
 
-	// Loading state for token verification
-	if (isLoading && token) {
+	// Loading state for token verification or invite-only check
+	if ((isLoading && token) || manifestLoading || manifest?.inviteOnly) {
 		return (
 			<div className="min-h-screen flex items-center justify-center bg-kumo-base">
 				<div className="text-center">

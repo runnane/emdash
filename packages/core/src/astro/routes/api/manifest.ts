@@ -9,7 +9,7 @@
 
 import type { APIRoute } from "astro";
 
-import { getAuthMode } from "#auth/mode.js";
+import { getAuthMode, isInviteOnly } from "#auth/mode.js";
 
 import type { EmDashManifest } from "../../types.js";
 
@@ -21,10 +21,13 @@ export const GET: APIRoute = async ({ locals }) => {
 	// Determine auth mode from config
 	const authMode = getAuthMode(emdash?.config);
 
+	const inviteOnly = isInviteOnly();
+
 	// Check if self-signup is enabled (any allowed domain with enabled = 1)
 	// Only relevant for passkey auth — external auth providers handle their own signup
+	// Invite-only mode overrides this to always false
 	let signupEnabled = false;
-	if (emdash?.db && authMode.type === "passkey") {
+	if (!inviteOnly && emdash?.db && authMode.type === "passkey") {
 		try {
 			const { sql } = await import("kysely");
 			const result = await sql<{ cnt: unknown }>`
@@ -41,6 +44,7 @@ export const GET: APIRoute = async ({ locals }) => {
 				...emdashManifest,
 				authMode: authMode.type === "external" ? authMode.providerType : "passkey",
 				signupEnabled,
+				inviteOnly,
 			}
 		: {
 				version: "0.1.0",
@@ -49,6 +53,7 @@ export const GET: APIRoute = async ({ locals }) => {
 				plugins: {},
 				authMode: "passkey",
 				signupEnabled,
+				inviteOnly,
 			};
 
 	return Response.json(

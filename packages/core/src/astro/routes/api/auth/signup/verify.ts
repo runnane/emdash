@@ -13,12 +13,17 @@ import { validateSignupToken, SignupError, roleFromLevel } from "@emdash-cms/aut
 import { createKyselyAdapter } from "@emdash-cms/auth/adapters/kysely";
 
 import { apiError, apiSuccess, handleError } from "#api/error.js";
+import { isInviteOnly } from "#auth/mode.js";
 
 export const GET: APIRoute = async ({ url, locals }) => {
 	const { emdash } = locals;
 
 	if (!emdash?.db) {
 		return apiError("NOT_CONFIGURED", "EmDash is not initialized", 500);
+	}
+
+	if (isInviteOnly()) {
+		return apiError("SIGNUP_DISABLED", "Self-signup is disabled. Please request an invite.", 403);
 	}
 
 	const token = url.searchParams.get("token");

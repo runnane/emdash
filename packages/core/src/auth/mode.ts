@@ -74,6 +74,19 @@ export function getAuthMode(
 }
 
 /**
+ * Check if invite-only mode is active.
+ *
+ * When `EMDASH_INVITE_ONLY=true`, self-signup and OAuth are disabled.
+ * Only invite + passkey + magic-link logins remain.
+ */
+export function isInviteOnly(): boolean {
+	const value = (import.meta.env.EMDASH_INVITE_ONLY ?? import.meta.env.INVITE_ONLY ?? "")
+		.toString()
+		.toLowerCase();
+	return value === "true" || value === "1";
+}
+
+/**
  * Check if an external auth provider is active
  */
 export function isExternalAuthEnabled(

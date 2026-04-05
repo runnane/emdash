@@ -295,31 +295,34 @@ export function LoginPage({ redirectUrl = "/_emdash/admin" }: LoginPageProps) {
 								buttonText="Sign in with Passkey"
 							/>
 
-							{/* Divider */}
-							<div className="relative">
-								<div className="absolute inset-0 flex items-center">
-									<span className="w-full border-t" />
-								</div>
-								<div className="relative flex justify-center text-xs uppercase">
-									<span className="bg-kumo-base px-2 text-kumo-subtle">Or continue with</span>
-								</div>
-							</div>
+							{/* Divider + OAuth Providers — hidden in invite-only mode */}
+							{!manifest?.inviteOnly && (
+								<>
+									<div className="relative">
+										<div className="absolute inset-0 flex items-center">
+											<span className="w-full border-t" />
+										</div>
+										<div className="relative flex justify-center text-xs uppercase">
+											<span className="bg-kumo-base px-2 text-kumo-subtle">Or continue with</span>
+										</div>
+									</div>
 
-							{/* OAuth Providers */}
-							<div className="grid grid-cols-2 gap-3">
-								{OAUTH_PROVIDERS.map((provider) => (
-									<Button
-										key={provider.id}
-										variant="outline"
-										type="button"
-										onClick={() => handleOAuthClick(provider.id)}
-										className="w-full justify-center"
-									>
-										{provider.icon}
-										<span className="ml-2">{provider.name}</span>
-									</Button>
-								))}
-							</div>
+									<div className="grid grid-cols-2 gap-3">
+										{OAUTH_PROVIDERS.map((provider) => (
+											<Button
+												key={provider.id}
+												variant="outline"
+												type="button"
+												onClick={() => handleOAuthClick(provider.id)}
+												className="w-full justify-center"
+											>
+												{provider.icon}
+												<span className="ml-2">{provider.name}</span>
+											</Button>
+										))}
+									</div>
+								</>
+							)}
 
 							{/* Magic Link Option */}
 							<Button
@@ -343,8 +346,8 @@ export function LoginPage({ redirectUrl = "/_emdash/admin" }: LoginPageProps) {
 						: "We'll send you a link to sign in without a password."}
 				</p>
 
-				{/* Signup link — only shown when self-signup is enabled */}
-				{manifest?.signupEnabled && (
+				{/* Signup link — only shown when self-signup is enabled and not invite-only */}
+				{manifest?.signupEnabled && !manifest?.inviteOnly && (
 					<p className="text-center mt-4 text-sm text-kumo-subtle">
 						Don't have an account?{" "}
 						<Link to="/signup" className="text-kumo-brand hover:underline font-medium">

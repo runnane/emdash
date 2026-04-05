@@ -123,6 +123,11 @@ export interface AdminManifest {
 	 */
 	signupEnabled?: boolean;
 	/**
+	 * Whether invite-only mode is active (EMDASH_INVITE_ONLY=true).
+	 * When true, self-signup and OAuth are disabled.
+	 */
+	inviteOnly?: boolean;
+	/**
 	 * i18n configuration. Present when multiple locales are configured.
 	 */
 	i18n?: {

@@ -16,6 +16,7 @@ import { apiError, apiSuccess } from "#api/error.js";
 import { isParseError, parseBody } from "#api/parse.js";
 import { signupRequestBody } from "#api/schemas.js";
 import { getSiteBaseUrl } from "#api/site-url.js";
+import { isInviteOnly } from "#auth/mode.js";
 import { OptionsRepository } from "#db/repositories/options.js";
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -23,6 +24,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
 	if (!emdash?.db) {
 		return apiError("NOT_CONFIGURED", "EmDash is not initialized", 500);
+	}
+
+	// Invite-only mode disables self-signup
+	if (isInviteOnly()) {
+		return apiError("SIGNUP_DISABLED", "Self-signup is disabled. Please request an invite.", 403);
 	}
 
 	// Check if email pipeline is available
