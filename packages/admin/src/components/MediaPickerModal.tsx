@@ -27,6 +27,41 @@ import { providerItemToMediaItem, getFileIcon } from "../lib/media-utils";
 import { cn } from "../lib/utils";
 import { DialogError } from "./DialogError.js";
 
+// ============================================================================
+// Infinite Scroll Sentinel
+// ============================================================================
+
+/** Invisible element that triggers loading more items when scrolled into view */
+function LoadMoreSentinel({ onVisible, isLoading }: { onVisible: () => void; isLoading: boolean }) {
+	const ref = React.useRef<HTMLDivElement>(null);
+
+	React.useEffect(() => {
+		const el = ref.current;
+		if (!el || isLoading) return;
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0]?.isIntersecting) {
+					onVisible();
+				}
+			},
+			{ rootMargin: "200px" },
+		);
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, [onVisible, isLoading]);
+
+	return (
+		<div ref={ref} className="flex justify-center py-4">
+			{isLoading && <Loader size="sm" />}
+		</div>
+	);
+}
+
+// ============================================================================
+// Types
+// ============================================================================
+
 /** Selected item can be either a local MediaItem or a provider item with provider context */
 interface SelectedMedia {
 	providerId: string;
@@ -67,7 +102,7 @@ export function MediaPickerModal({
 }: MediaPickerModalProps) {
 	const queryClient = useQueryClient();
 	const [selectedItem, setSelectedItem] = React.useState<SelectedMedia | null>(null);
-	const [activeProvider, setActiveProvider] = React.useState<string>("local");
+	const [activeProvider, setActiveProvider] = React.useState<string | null>(null);
 	const [searchQuery, setSearchQuery] = React.useState("");
 	const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -85,7 +120,7 @@ export function MediaPickerModal({
 	React.useEffect(() => {
 		if (open) {
 			setSelectedItem(null);
-			setActiveProvider("local");
+			setActiveProvider(null);
 			setSearchQuery("");
 			setImageUrl("");
 			setUrlError(null);
@@ -146,7 +181,7 @@ export function MediaPickerModal({
 	} = useInfiniteQuery({
 		queryKey: ["provider-media", activeProvider, mimeTypeFilter, searchQuery],
 		queryFn: ({ pageParam }) =>
-			fetchProviderMedia(activeProvider, {
+			fetchProviderMedia(activeProvider!, {
 				mimeType: mimeTypeFilter,
 				limit: 50,
 				query: searchQuery || undefined,
@@ -154,7 +189,7 @@ export function MediaPickerModal({
 			}),
 		initialPageParam: undefined as string | undefined,
 		getNextPageParam: (lastPage) => lastPage.nextCursor,
-		enabled: open && activeProvider !== "local",
+		enabled: open && activeProvider !== null && activeProvider !== "local",
 	});
 
 	const isLoading = activeProvider === "local" ? localLoading : providerLoading;
@@ -255,7 +290,7 @@ export function MediaPickerModal({
 			if (activeProvider === "local") {
 				uploadLocalMutation.mutate(file);
 			} else if (activeProviderInfo?.capabilities.upload) {
-				uploadProviderMutation.mutate({ providerId: activeProvider, file });
+				uploadProviderMutation.mutate({ providerId: activeProvider!, file });
 			}
 		}
 		if (fileInputRef.current) {
@@ -358,6 +393,14 @@ export function MediaPickerModal({
 		}
 		return tabs;
 	}, [providers]);
+
+	// Default to first external provider when available, otherwise local
+	React.useEffect(() => {
+		if (activeProvider === null && providerTabs.length > 0) {
+			const firstExternal = providerTabs.find((t) => t.id !== "local");
+			setActiveProvider(firstExternal?.id ?? "local");
+		}
+	}, [activeProvider, providerTabs]);
 
 	return (
 		<Dialog.Root open={open} onOpenChange={handleClose}>
@@ -557,7 +600,7 @@ export function MediaPickerModal({
 												selectedItem?.providerId === activeProvider &&
 												selectedItem.item.id === item.id
 											}
-											onClick={() => setSelectedItem({ providerId: activeProvider, item })}
+											onClick={() => setSelectedItem({ providerId: activeProvider!, item })}
 											onDoubleClick={() => {
 												// Merge loaded dimensions for double-click select
 												const dims = providerDimensions[item.id];
@@ -568,7 +611,7 @@ export function MediaPickerModal({
 															height: item.height ?? dims.height,
 														}
 													: item;
-												const mediaItem = providerItemToMediaItem(activeProvider, itemWithDims);
+												const mediaItem = providerItemToMediaItem(activeProvider!, itemWithDims);
 												onSelect(mediaItem);
 												onOpenChange(false);
 											}}
@@ -582,31 +625,19 @@ export function MediaPickerModal({
 									))}
 						</ul>
 					)}
-					{/* Load More */}
+					{/* Load More (auto-triggered by scroll) */}
 					{((activeProvider === "local" && hasNextLocalPage) ||
 						(activeProvider !== "local" && hasNextProviderPage)) && (
-						<div className="flex justify-center py-4">
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => {
-									if (activeProvider === "local") {
-										void fetchNextLocalPage();
-									} else {
-										void fetchNextProviderPage();
-									}
-								}}
-								disabled={isFetchingNextLocalPage || isFetchingNextProviderPage}
-							>
-								{isFetchingNextLocalPage || isFetchingNextProviderPage ? (
-									<>
-										<Loader size="sm" /> Loading...
-									</>
-								) : (
-									"Load more"
-								)}
-							</Button>
-						</div>
+						<LoadMoreSentinel
+							onVisible={() => {
+								if (activeProvider === "local") {
+									void fetchNextLocalPage();
+								} else {
+									void fetchNextProviderPage();
+								}
+							}}
+							isLoading={isFetchingNextLocalPage || isFetchingNextProviderPage}
+						/>
 					)}
 				</div>
 
@@ -710,6 +741,8 @@ function MediaPickerItem({
 					aria-hidden="true"
 				>
 					<p className="text-xs text-white truncate">{item.filename}</p>
+					{item.alt && <p className="text-xs text-white/80 truncate">{item.alt}</p>}
+					{item.caption && <p className="text-xs text-white/60 italic truncate">{item.caption}</p>}
 				</div>
 			</button>
 		</li>
@@ -791,6 +824,12 @@ function ProviderMediaItem({
 					aria-hidden="true"
 				>
 					<p className="text-xs text-white truncate">{item.filename}</p>
+					{item.alt && <p className="text-xs text-white/80 truncate">{item.alt}</p>}
+					{typeof (item.meta as Record<string, unknown> | undefined)?.caption === "string" && (
+						<p className="text-xs text-white/60 italic truncate">
+							{(item.meta as Record<string, string>).caption}
+						</p>
+					)}
 				</div>
 			</button>
 		</li>

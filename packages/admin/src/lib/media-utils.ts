@@ -14,7 +14,7 @@ export function providerItemToMediaItem(
 		height: item.height,
 		alt: item.alt,
 		caption: (item.meta?.caption as string) || undefined,
-		createdAt: new Date().toISOString(),
+		createdAt: (item.meta?.uploaded as string) || new Date().toISOString(),
 		provider: providerId,
 		meta: item.meta,
 	} as MediaItem & { provider: string; meta?: Record<string, unknown> };

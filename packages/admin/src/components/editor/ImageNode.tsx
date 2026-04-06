@@ -159,6 +159,16 @@ function ImageNodeView({ node, updateAttributes, selected, deleteNode, editor }:
 						{node.attrs.alt}
 					</div>
 				)}
+				{/* Caption label */}
+				{node.attrs.caption && !isEditingAlt && (
+					<div
+						className="emdash-image-alt-label italic"
+						title={node.attrs.caption}
+						style={{ opacity: 0.7 }}
+					>
+						{node.attrs.caption}
+					</div>
+				)}
 
 				{/* Selection overlay with actions */}
 				{selected && (

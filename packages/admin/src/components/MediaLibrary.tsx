@@ -15,6 +15,41 @@ import { providerItemToMediaItem, getFileIcon, formatFileSize } from "../lib/med
 import { cn } from "../lib/utils";
 import { MediaDetailPanel } from "./MediaDetailPanel";
 
+// ============================================================================
+// Infinite Scroll Sentinel
+// ============================================================================
+
+/** Invisible element that triggers loading more items when scrolled into view */
+function LoadMoreSentinel({ onVisible, isLoading }: { onVisible: () => void; isLoading: boolean }) {
+	const ref = React.useRef<HTMLDivElement>(null);
+
+	React.useEffect(() => {
+		const el = ref.current;
+		if (!el || isLoading) return;
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0]?.isIntersecting) {
+					onVisible();
+				}
+			},
+			{ rootMargin: "200px" },
+		);
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, [onVisible, isLoading]);
+
+	return (
+		<div ref={ref} className="flex justify-center py-4">
+			{isLoading && <Loader size="sm" />}
+		</div>
+	);
+}
+
+// ============================================================================
+// MediaLibrary
+// ============================================================================
+
 export interface MediaLibraryProps {
 	items?: MediaItem[];
 	isLoading?: boolean;
@@ -36,7 +71,7 @@ export function MediaLibrary({
 }: MediaLibraryProps) {
 	const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
 	const [selectedItem, setSelectedItem] = React.useState<MediaItem | null>(null);
-	const [activeProvider, setActiveProvider] = React.useState<string>("local");
+	const [activeProvider, setActiveProvider] = React.useState<string | null>(null);
 	const [searchQuery, setSearchQuery] = React.useState("");
 	const [uploadState, setUploadState] = React.useState<{
 		status: "idle" | "uploading" | "success" | "error";
@@ -67,14 +102,14 @@ export function MediaLibrary({
 	} = useInfiniteQuery({
 		queryKey: ["provider-media", activeProvider, searchQuery],
 		queryFn: ({ pageParam }) =>
-			fetchProviderMedia(activeProvider, {
+			fetchProviderMedia(activeProvider!, {
 				limit: 50,
 				query: searchQuery || undefined,
 				cursor: pageParam,
 			}),
 		initialPageParam: undefined as string | undefined,
 		getNextPageParam: (lastPage) => lastPage.nextCursor,
-		enabled: activeProvider !== "local",
+		enabled: activeProvider !== null && activeProvider !== "local",
 	});
 
 	// Get active provider info
@@ -121,7 +156,7 @@ export function MediaLibrary({
 							height: updated.height ?? dims.height,
 						}
 					: updated;
-				setSelectedItem(providerItemToMediaItem(activeProvider, itemWithDims));
+				setSelectedItem(providerItemToMediaItem(activeProvider!, itemWithDims));
 			} else {
 				setSelectedItem(null);
 			}
@@ -187,7 +222,7 @@ export function MediaLibrary({
 
 				for (const file of fileArray) {
 					try {
-						await uploadToProvider(activeProvider, file);
+						await uploadToProvider(activeProvider!, file);
 						uploaded++;
 					} catch (error) {
 						console.error("Upload failed:", error);
@@ -239,6 +274,14 @@ export function MediaLibrary({
 		}
 		return tabs;
 	}, [providers]);
+
+	// Default to first external provider when available, otherwise local
+	React.useEffect(() => {
+		if (activeProvider === null && providerTabs.length > 0) {
+			const firstExternal = providerTabs.find((t) => t.id !== "local");
+			setActiveProvider(firstExternal?.id ?? "local");
+		}
+	}, [activeProvider, providerTabs]);
 
 	// Get current items based on active provider
 	const currentItems = activeProvider === "local" ? items : [];
@@ -427,7 +470,7 @@ export function MediaLibrary({
 													height: item.height ?? dims.height,
 												}
 											: item;
-										setSelectedItem(providerItemToMediaItem(activeProvider, itemWithDims));
+										setSelectedItem(providerItemToMediaItem(activeProvider!, itemWithDims));
 									}}
 									onDimensionsLoaded={(width, height) => {
 										setLoadedDimensions((prev) => ({
@@ -475,7 +518,7 @@ export function MediaLibrary({
 															height: item.height ?? dims.height,
 														}
 													: item;
-												setSelectedItem(providerItemToMediaItem(activeProvider, itemWithDims));
+												setSelectedItem(providerItemToMediaItem(activeProvider!, itemWithDims));
 											}}
 											onDimensionsLoaded={(width, height) => {
 												setLoadedDimensions((prev) => ({
@@ -490,23 +533,12 @@ export function MediaLibrary({
 				</div>
 			)}
 
-			{/* Load More (provider pagination) */}
+			{/* Load More (provider pagination - auto-triggered by scroll) */}
 			{activeProvider !== "local" && hasNextProviderPage && (
-				<div className="flex justify-center pt-4">
-					<Button
-						variant="outline"
-						onClick={() => void fetchNextProviderPage()}
-						disabled={isFetchingNextProviderPage}
-					>
-						{isFetchingNextProviderPage ? (
-							<>
-								<Loader size="sm" /> Loading...
-							</>
-						) : (
-							"Load more"
-						)}
-					</Button>
-				</div>
+				<LoadMoreSentinel
+					onVisible={() => void fetchNextProviderPage()}
+					isLoading={isFetchingNextProviderPage}
+				/>
 			)}
 
 			{/* Detail Panel */}
@@ -563,6 +595,8 @@ function MediaGridItem({ item, selected, onClick }: MediaGridItemProps) {
 			<div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 to-transparent opacity-0 transition-opacity group-hover:opacity-100">
 				<div className="w-full p-3">
 					<p className="truncate text-sm font-medium text-white">{item.filename}</p>
+					{item.alt && <p className="truncate text-xs text-white/80">{item.alt}</p>}
+					{item.caption && <p className="truncate text-xs text-white/60 italic">{item.caption}</p>}
 				</div>
 			</div>
 		</button>
@@ -614,6 +648,12 @@ function ProviderGridItem({ item, selected, onClick, onDimensionsLoaded }: Provi
 			<div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 to-transparent opacity-0 transition-opacity group-hover:opacity-100">
 				<div className="w-full p-3">
 					<p className="truncate text-sm font-medium text-white">{item.filename}</p>
+					{item.alt && <p className="truncate text-xs text-white/80">{item.alt}</p>}
+					{typeof (item.meta as Record<string, unknown> | undefined)?.caption === "string" && (
+						<p className="truncate text-xs text-white/60 italic">
+							{(item.meta as Record<string, string>).caption}
+						</p>
+					)}
 				</div>
 			</div>
 		</button>
