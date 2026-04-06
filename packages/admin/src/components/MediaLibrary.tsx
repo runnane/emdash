@@ -1,5 +1,15 @@
 import { Button, Input, Loader } from "@cloudflare/kumo";
-import { Upload, Image, SquaresFour, List, MagnifyingGlass, Check, X } from "@phosphor-icons/react";
+import {
+	Upload,
+	Image,
+	SquaresFour,
+	List,
+	MagnifyingGlass,
+	Check,
+	X,
+	CaretUp,
+	CaretDown,
+} from "@phosphor-icons/react";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import * as React from "react";
 
@@ -73,6 +83,8 @@ export function MediaLibrary({
 	const [selectedItem, setSelectedItem] = React.useState<MediaItem | null>(null);
 	const [activeProvider, setActiveProvider] = React.useState<string | null>(null);
 	const [searchQuery, setSearchQuery] = React.useState("");
+	const [sortColumn, setSortColumn] = React.useState<string>("uploaded");
+	const [sortDirection, setSortDirection] = React.useState<"asc" | "desc">("desc");
 	const [uploadState, setUploadState] = React.useState<{
 		status: "idle" | "uploading" | "success" | "error";
 		message?: string;
@@ -288,6 +300,51 @@ export function MediaLibrary({
 	const currentProviderItems = activeProvider !== "local" ? providerItems : [];
 	const currentLoading = activeProvider === "local" ? isLoading : providerLoading;
 
+	// Handle column sort toggle
+	const handleSort = React.useCallback(
+		(column: string) => {
+			if (sortColumn === column) {
+				setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
+			} else {
+				setSortColumn(column);
+				setSortDirection(column === "uploaded" ? "desc" : "asc");
+			}
+		},
+		[sortColumn],
+	);
+
+	// Sort provider items client-side
+	const sortedProviderItems = React.useMemo(() => {
+		if (currentProviderItems.length === 0) return currentProviderItems;
+		return currentProviderItems.toSorted((a, b) => {
+			let cmp = 0;
+			switch (sortColumn) {
+				case "filename":
+					cmp = a.filename.localeCompare(b.filename);
+					break;
+				case "alt":
+					cmp = (a.alt || "").localeCompare(b.alt || "");
+					break;
+				case "caption": {
+					const ac = typeof a.meta?.caption === "string" ? a.meta.caption : "";
+					const bc = typeof b.meta?.caption === "string" ? b.meta.caption : "";
+					cmp = ac.localeCompare(bc);
+					break;
+				}
+				case "uploaded": {
+					const au = typeof a.meta?.uploaded === "string" ? a.meta.uploaded : "";
+					const bu = typeof b.meta?.uploaded === "string" ? b.meta.uploaded : "";
+					cmp = au.localeCompare(bu);
+					break;
+				}
+				case "size":
+					cmp = (a.size ?? 0) - (b.size ?? 0);
+					break;
+			}
+			return sortDirection === "asc" ? cmp : -cmp;
+		});
+	}, [currentProviderItems, sortColumn, sortDirection]);
+
 	// Total count from provider stats (returned on first page)
 	const providerTotalCount = providerData?.pages[0]?.totalCount;
 
@@ -471,7 +528,7 @@ export function MediaLibrary({
 									onDelete={() => onDelete?.(item.id)}
 								/>
 							))
-						: currentProviderItems.map((item) => (
+						: sortedProviderItems.map((item) => (
 								<ProviderGridItem
 									key={item.id}
 									item={item}
@@ -501,13 +558,55 @@ export function MediaLibrary({
 				<div className="rounded-md border overflow-x-auto">
 					<table className="w-full">
 						<thead>
-							<tr className="border-b bg-kumo-tint/50">
-								<th className="px-4 py-3 text-left text-sm font-medium">Preview</th>
-								<th className="px-4 py-3 text-left text-sm font-medium">Filename</th>
-								<th className="px-4 py-3 text-left text-sm font-medium">Type</th>
-								<th className="px-4 py-3 text-left text-sm font-medium">Size</th>
-								<th className="px-4 py-3 text-right text-sm font-medium">Actions</th>
-							</tr>
+							{activeProvider === "local" ? (
+								<tr className="border-b bg-kumo-tint/50">
+									<th className="px-4 py-3 text-left text-sm font-medium">Preview</th>
+									<th className="px-4 py-3 text-left text-sm font-medium">Filename</th>
+									<th className="px-4 py-3 text-left text-sm font-medium">Type</th>
+									<th className="px-4 py-3 text-left text-sm font-medium">Size</th>
+									<th className="px-4 py-3 text-right text-sm font-medium">Actions</th>
+								</tr>
+							) : (
+								<tr className="border-b bg-kumo-tint/50">
+									<th className="px-4 py-3 text-left text-sm font-medium w-10">Preview</th>
+									<SortableHeader
+										column="filename"
+										label="Filename"
+										sortColumn={sortColumn}
+										sortDirection={sortDirection}
+										onSort={handleSort}
+									/>
+									<SortableHeader
+										column="alt"
+										label="Alt Text"
+										sortColumn={sortColumn}
+										sortDirection={sortDirection}
+										onSort={handleSort}
+									/>
+									<SortableHeader
+										column="caption"
+										label="Caption"
+										sortColumn={sortColumn}
+										sortDirection={sortDirection}
+										onSort={handleSort}
+									/>
+									<SortableHeader
+										column="uploaded"
+										label="Uploaded"
+										sortColumn={sortColumn}
+										sortDirection={sortDirection}
+										onSort={handleSort}
+									/>
+									<SortableHeader
+										column="size"
+										label="Size"
+										sortColumn={sortColumn}
+										sortDirection={sortDirection}
+										onSort={handleSort}
+										align="right"
+									/>
+								</tr>
+							)}
 						</thead>
 						<tbody>
 							{activeProvider === "local"
@@ -520,7 +619,7 @@ export function MediaLibrary({
 											onDelete={() => onDelete?.(item.id)}
 										/>
 									))
-								: currentProviderItems.map((item) => (
+								: sortedProviderItems.map((item) => (
 										<ProviderListItem
 											key={item.id}
 											item={item}
@@ -575,6 +674,68 @@ export function MediaLibrary({
 		</div>
 	);
 }
+
+// ============================================================================
+// Sort Helpers
+// ============================================================================
+
+/** Format an ISO date string for display */
+function formatDate(isoString: string): string {
+	try {
+		return new Date(isoString).toLocaleDateString(undefined, {
+			year: "numeric",
+			month: "short",
+			day: "numeric",
+		});
+	} catch {
+		return isoString;
+	}
+}
+
+/** Sortable column header with caret indicator */
+function SortableHeader({
+	column,
+	label,
+	sortColumn,
+	sortDirection,
+	onSort,
+	align = "left",
+}: {
+	column: string;
+	label: string;
+	sortColumn: string;
+	sortDirection: "asc" | "desc";
+	onSort: (column: string) => void;
+	align?: "left" | "right";
+}) {
+	const isActive = sortColumn === column;
+	return (
+		<th
+			className={cn(
+				"px-4 py-3 text-sm font-medium select-none cursor-pointer hover:bg-kumo-tint/80 transition-colors",
+				align === "right" ? "text-right" : "text-left",
+			)}
+			onClick={() => onSort(column)}
+		>
+			<span className="inline-flex items-center gap-1">
+				{label}
+				{isActive ? (
+					sortDirection === "asc" ? (
+						<CaretUp className="h-3 w-3" weight="bold" />
+					) : (
+						<CaretDown className="h-3 w-3" weight="bold" />
+					)
+				) : (
+					<CaretDown className="h-3 w-3 opacity-0 group-hover:opacity-30" />
+				)}
+			</span>
+		</th>
+	);
+}
+
+// ============================================================================
+// Grid / List Item Components
+// ============================================================================
 
 interface MediaGridItemProps {
 	item: MediaItem;
@@ -731,6 +892,8 @@ interface ProviderListItemProps {
 
 function ProviderListItem({ item, selected, onClick, onDimensionsLoaded }: ProviderListItemProps) {
 	const isImage = item.mimeType.startsWith("image/");
+	const uploaded = typeof item.meta?.uploaded === "string" ? item.meta.uploaded : null;
+	const caption = typeof item.meta?.caption === "string" ? item.meta.caption : null;
 
 	const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
 		const img = e.currentTarget;
@@ -763,15 +926,34 @@ function ProviderListItem({ item, selected, onClick, onDimensionsLoaded }: Provi
 					)}
 				</div>
 			</td>
-			<td className="px-4 py-3 font-medium">{item.filename}</td>
-			<td className="px-4 py-3 text-sm text-kumo-subtle">{item.mimeType}</td>
-			<td className="px-4 py-3 text-sm text-kumo-subtle">
-				{item.size ? formatFileSize(item.size) : "—"}
-			</td>
-			<td className="px-4 py-3 text-right">
-				<span className="text-sm text-kumo-subtle">
-					{item.alt ? "Alt text set" : "No alt text"}
+			<td className="px-4 py-3 text-sm font-medium">
+				<span className="truncate block max-w-[200px]" title={item.filename}>
+					{item.filename}
 				</span>
+			</td>
+			<td className="px-4 py-3 text-sm text-kumo-subtle">
+				{item.alt ? (
+					<span className="truncate block max-w-[200px]" title={item.alt}>
+						{item.alt}
+					</span>
+				) : (
+					<span className="italic opacity-50">—</span>
+				)}
+			</td>
+			<td className="px-4 py-3 text-sm text-kumo-subtle">
+				{caption ? (
+					<span className="truncate block max-w-[200px]" title={caption}>
+						{caption}
+					</span>
+				) : (
+					<span className="italic opacity-50">—</span>
+				)}
+			</td>
+			<td className="px-4 py-3 text-sm text-kumo-subtle whitespace-nowrap">
+				{uploaded ? formatDate(uploaded) : "—"}
+			</td>
+			<td className="px-4 py-3 text-sm text-kumo-subtle text-right">
+				{item.size ? formatFileSize(item.size) : "—"}
 			</td>
 		</tr>
 	);
