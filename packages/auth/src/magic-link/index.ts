@@ -63,9 +63,7 @@ export async function sendMagicLink(
 	});
 
 	// Build magic link URL
-	// Ensure baseUrl trailing slash so relative path preserves any prefix (e.g. /_emdash/)
-	const base = config.baseUrl.endsWith("/") ? config.baseUrl : config.baseUrl + "/";
-	const url = new URL("api/auth/magic-link/verify", base);
+	const url = new URL("/_emdash/api/auth/magic-link/verify", config.baseUrl);
 	url.searchParams.set("token", token);
 
 	// Send email
