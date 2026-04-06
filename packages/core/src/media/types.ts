@@ -69,6 +69,7 @@ export interface MediaListOptions {
 export interface MediaListResult {
 	items: MediaProviderItem[];
 	nextCursor?: string;
+	totalCount?: number;
 }
 
 /**

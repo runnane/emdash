@@ -64,6 +64,8 @@ export const createMediaProvider: CreateMediaProviderFn<CloudflareImagesConfig> 
 		resolveEnvValue(config.apiToken, config.apiTokenEnvVar, "CF_IMAGES_TOKEN", "Cloudflare Images");
 	const getApiBase = () =>
 		`https://api.cloudflare.com/client/v4/accounts/${getAccountId()}/images/v1`;
+	const getListApiBase = () =>
+		`https://api.cloudflare.com/client/v4/accounts/${getAccountId()}/images/v2`;
 	const getHeaders = () => ({ Authorization: `Bearer ${getApiToken()}` });
 	const getDeliveryBase = () =>
 		deliveryDomain ? `https://${deliveryDomain}` : "https://imagedelivery.net";
@@ -99,7 +101,7 @@ export const createMediaProvider: CreateMediaProviderFn<CloudflareImagesConfig> 
 
 	const provider: MediaProvider = {
 		async list(options: MediaListOptions) {
-			const apiBase = getApiBase();
+			const listBase = getListApiBase();
 			const headers = getHeaders();
 
 			const params = new URLSearchParams();
@@ -109,8 +111,11 @@ export const createMediaProvider: CreateMediaProviderFn<CloudflareImagesConfig> 
 			if (options.limit) {
 				params.set("per_page", String(options.limit));
 			}
+			// v2 supports sort_order: newest images first
+			params.set("sort_order", "desc");
 
-			const url = `${apiBase}?${params}`;
+			// Fetch images from v2 endpoint (supports continuation_token pagination)
+			const url = `${listBase}?${params}`;
 			const response = await fetch(url, { headers });
 
 			if (!response.ok) {
@@ -123,6 +128,23 @@ export const createMediaProvider: CreateMediaProviderFn<CloudflareImagesConfig> 
 				throw new Error(
 					`Cloudflare Images API error: ${data.errors?.[0]?.message || "Unknown error"}`,
 				);
+			}
+
+			// Fetch total count from stats API on the first page only
+			let totalCount: number | undefined;
+			if (!options.cursor) {
+				try {
+					const statsUrl = `${getApiBase()}/stats`;
+					const statsResponse = await fetch(statsUrl, { headers });
+					if (statsResponse.ok) {
+						const statsData: CloudflareImagesStatsResponse = await statsResponse.json();
+						if (statsData.success) {
+							totalCount = statsData.result.count.current;
+						}
+					}
+				} catch {
+					// Stats are non-critical; continue without totalCount
+				}
 			}
 
 			// Filter out images that require signed URLs (not supported yet)
@@ -161,6 +183,7 @@ export const createMediaProvider: CreateMediaProviderFn<CloudflareImagesConfig> 
 					};
 				}),
 				nextCursor: data.result.continuation_token || undefined,
+				totalCount,
 			};
 		},
 
@@ -412,5 +435,16 @@ interface ImageJsonResponse {
 		width: number;
 		height: number;
 		format: string;
+	};
+}
+
+// Response from /images/v1/stats endpoint
+interface CloudflareImagesStatsResponse {
+	success: boolean;
+	result: {
+		count: {
+			allowed: number;
+			current: number;
+		};
 	};
 }

@@ -288,6 +288,9 @@ export function MediaLibrary({
 	const currentProviderItems = activeProvider !== "local" ? providerItems : [];
 	const currentLoading = activeProvider === "local" ? isLoading : providerLoading;
 
+	// Total count from provider stats (returned on first page)
+	const providerTotalCount = providerData?.pages[0]?.totalCount;
+
 	const canUpload = activeProviderInfo?.capabilities.upload ?? false;
 	const canSearch = activeProviderInfo?.capabilities.search ?? false;
 
@@ -416,6 +419,19 @@ export function MediaLibrary({
 			)}
 
 			{/* Content */}
+			{/* Item count info */}
+			{!currentLoading && (
+				<div className="text-sm text-kumo-subtle">
+					{activeProvider === "local"
+						? currentItems.length > 0 &&
+							`Showing ${currentItems.length} item${currentItems.length !== 1 ? "s" : ""}`
+						: currentProviderItems.length > 0 &&
+							(providerTotalCount != null
+								? `Showing ${currentProviderItems.length} of ${providerTotalCount} item${providerTotalCount !== 1 ? "s" : ""}`
+								: `Showing ${currentProviderItems.length} item${currentProviderItems.length !== 1 ? "s" : ""}`)}
+				</div>
+			)}
+
 			{currentLoading ? (
 				<div className="flex items-center justify-center py-12">
 					<Loader />

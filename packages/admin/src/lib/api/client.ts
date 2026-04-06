@@ -40,6 +40,7 @@ export async function throwResponseError(res: Response, fallback: string): Promi
 export interface FindManyResult<T> {
 	items: T[];
 	nextCursor?: string;
+	totalCount?: number;
 }
 
 /**

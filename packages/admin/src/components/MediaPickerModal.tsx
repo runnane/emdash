@@ -283,6 +283,9 @@ export function MediaPickerModal({
 		return providerData?.pages.flatMap((page) => page.items) ?? [];
 	}, [activeProvider, localData, providerData, mimeTypeFilter]);
 
+	// Total count from provider stats (returned on first page)
+	const providerTotalCount = providerData?.pages[0]?.totalCount;
+
 	const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const files = e.target.files;
 		const file = files?.[0];
@@ -542,6 +545,15 @@ export function MediaPickerModal({
 					message={uploadError ? `Upload failed: ${uploadError}` : null}
 					className="mb-3"
 				/>
+
+				{/* Item count info */}
+				{!isLoading && items.length > 0 && (
+					<div className="text-xs text-kumo-subtle mb-1">
+						{activeProvider !== "local" && providerTotalCount != null
+							? `Showing ${items.length} of ${providerTotalCount} items`
+							: `Showing ${items.length} item${items.length !== 1 ? "s" : ""}`}
+					</div>
+				)}
 
 				{/* Media Grid */}
 				<div className="flex-1 overflow-y-auto min-h-[300px]">

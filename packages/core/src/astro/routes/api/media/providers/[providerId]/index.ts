@@ -54,6 +54,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
 		return apiSuccess({
 			items: result.items,
 			nextCursor: result.nextCursor,
+			totalCount: result.totalCount,
 		});
 	} catch (error) {
 		return handleError(error, "Failed to list media from provider", "PROVIDER_LIST_ERROR");
