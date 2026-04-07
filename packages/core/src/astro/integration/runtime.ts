@@ -305,6 +305,19 @@ export interface EmDashConfig {
 	};
 
 	/**
+	 * Enable or disable the visual editing toolbar on the frontend.
+	 *
+	 * When `true` (default), authenticated editors see a floating toolbar
+	 * at the bottom of every page with an Edit toggle, status badges,
+	 * and publish controls.
+	 *
+	 * Set to `false` to disable toolbar injection entirely.
+	 *
+	 * @default true
+	 */
+	visualEditing?: boolean;
+
+	/**
 	 * Media providers for browsing and uploading media
 	 *
 	 * The local media provider (using storage adapter) is available by default.

@@ -15,6 +15,7 @@ import { defineMiddleware } from "astro:middleware";
 import { verifyPreviewToken, parseContentId } from "../../preview/tokens.js";
 import { runWithContext } from "../../request-context.js";
 import { renderToolbar } from "../../visual-editing/toolbar.js";
+import { getStoredConfig } from "../integration/runtime.js";
 
 /**
  * Inject toolbar HTML into a response if it's an HTML page.
@@ -45,6 +46,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
 	// Check for authenticated editor (role >= 30)
 	const { user } = context.locals;
 	const isEditor = !!user && user.role >= 30;
+
+	// Check if visual editing toolbar is disabled via config
+	const toolbarEnabled = getStoredConfig()?.visualEditing !== false;
 
 	// Playground mode: the playground middleware (from @emdash-cms/cloudflare) stashes
 	// the per-session DO database on locals.__playgroundDb. We set it via ALS here
@@ -101,7 +105,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 			}
 
 			// Inject toolbar for authenticated editors
-			if (isEditor) {
+			if (isEditor && toolbarEnabled) {
 				const toolbarHtml = renderToolbar({
 					editMode,
 					isPreview: !!preview,
@@ -114,7 +118,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 	}
 
 	// Editor without CMS signals — no ALS needed, but inject toolbar
-	if (isEditor) {
+	if (isEditor && toolbarEnabled) {
 		const response = await next();
 		const toolbarHtml = renderToolbar({
 			editMode: false,
