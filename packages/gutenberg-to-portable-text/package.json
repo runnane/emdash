@@ -23,7 +23,7 @@
     "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
-    "@wordpress/block-serialization-default-parser": "^5.13.0",
+    "@wordpress/block-serialization-default-parser": "^5.43.0",
     "parse5": "^7.2.1"
   },
   "devDependencies": {
@@ -47,7 +47,5 @@
     "blocks"
   ],
   "author": "Matt Kane",
-  "license": "MIT",
-  "peerDependencies": {},
-  "optionalDependencies": {}
+  "license": "MIT"
 }

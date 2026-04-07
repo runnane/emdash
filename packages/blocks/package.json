@@ -26,11 +26,11 @@
     "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
-    "@cloudflare/kumo": "^1.10.0",
+    "@cloudflare/kumo": "^1.17.0",
     "@phosphor-icons/react": "catalog:",
     "clsx": "^2.1.1",
     "echarts": "^6.0.0",
-    "tailwind-merge": "^3.3.0"
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
