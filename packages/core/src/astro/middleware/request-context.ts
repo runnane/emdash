@@ -11,11 +11,12 @@
  */
 
 import { defineMiddleware } from "astro:middleware";
+// @ts-ignore - virtual module
+import virtualConfig from "virtual:emdash/config";
 
 import { verifyPreviewToken, parseContentId } from "../../preview/tokens.js";
 import { runWithContext } from "../../request-context.js";
 import { renderToolbar } from "../../visual-editing/toolbar.js";
-import { getStoredConfig } from "../integration/runtime.js";
 
 /**
  * Inject toolbar HTML into a response if it's an HTML page.
@@ -48,7 +49,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
 	const isEditor = !!user && user.role >= 30;
 
 	// Check if visual editing toolbar is disabled via config
-	const toolbarEnabled = getStoredConfig()?.visualEditing !== false;
+	const toolbarEnabled = !(
+		virtualConfig &&
+		typeof virtualConfig === "object" &&
+		(virtualConfig as Record<string, unknown>).visualEditing === false
+	);
 
 	// Playground mode: the playground middleware (from @emdash-cms/cloudflare) stashes
 	// the per-session DO database on locals.__playgroundDb. We set it via ALS here
