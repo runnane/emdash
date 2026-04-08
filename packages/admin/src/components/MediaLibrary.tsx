@@ -9,6 +9,7 @@ import {
 	X,
 	CaretUp,
 	CaretDown,
+	Warning,
 } from "@phosphor-icons/react";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import * as React from "react";
@@ -107,6 +108,7 @@ export function MediaLibrary({
 	const {
 		data: providerData,
 		isLoading: providerLoading,
+		error: providerError,
 		refetch: refetchProviderMedia,
 		fetchNextPage: fetchNextProviderPage,
 		hasNextPage: hasNextProviderPage,
@@ -493,6 +495,12 @@ export function MediaLibrary({
 				<div className="flex items-center justify-center py-12">
 					<Loader />
 				</div>
+			) : activeProvider !== "local" && providerError ? (
+				<ProviderErrorState
+					error={providerError}
+					providerName={activeProviderInfo?.name}
+					onRetry={() => void refetchProviderMedia()}
+				/>
 			) : activeProvider === "local" && currentItems.length === 0 ? (
 				<div className="rounded-lg border bg-kumo-base p-12 text-center">
 					<Image className="mx-auto h-12 w-12 text-kumo-subtle" aria-hidden="true" />
@@ -730,6 +738,82 @@ function SortableHeader({
 				)}
 			</span>
 		</th>
+	);
+}
+
+// ============================================================================
+// Provider Error State
+// ============================================================================
+
+/** Parse a provider error into a user-friendly message and hint */
+function parseProviderError(error: Error): { message: string; hint?: string } {
+	const msg = error.message;
+
+	if (msg.includes("Missing")) {
+		// Extract env var name from "Cloudflare Images: Missing CF_IMAGES_TOKEN. Set it as..."
+		const match = msg.match(/Missing\s+(\S+)/);
+		const envVar = match?.[1]?.replace(/[.]+$/, "");
+		return {
+			message: "Provider is not configured",
+			hint: envVar
+				? `The environment variable ${envVar} is not set. Add it to your environment or provide it directly in the config.`
+				: "A required environment variable is missing. Check your provider configuration.",
+		};
+	}
+
+	if (
+		msg.includes("403") ||
+		msg.includes("401") ||
+		msg.includes("Forbidden") ||
+		msg.includes("Unauthorized")
+	) {
+		return {
+			message: "Access denied",
+			hint: "The API token does not have permission to list images. Verify the token has the Images Read permission in your Cloudflare dashboard.",
+		};
+	}
+
+	if (msg.includes("404")) {
+		return {
+			message: "Account not found",
+			hint: "The account ID may be incorrect. Verify your Cloudflare account ID in the provider configuration.",
+		};
+	}
+
+	if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("fetch")) {
+		return {
+			message: "Connection failed",
+			hint: "Could not reach the provider API. Check your network connection and try again.",
+		};
+	}
+
+	return {
+		message: "Failed to load media",
+		hint: msg || "An unexpected error occurred. Check the server logs for details.",
+	};
+}
+
+function ProviderErrorState({
+	error,
+	providerName,
+	onRetry,
+}: {
+	error: Error;
+	providerName?: string;
+	onRetry: () => void;
+}) {
+	const { message, hint } = parseProviderError(error);
+
+	return (
+		<div className="rounded-lg border border-kumo-danger/30 bg-kumo-danger/5 p-8 text-center">
+			<Warning className="mx-auto h-12 w-12 text-kumo-danger" weight="duotone" aria-hidden="true" />
+			<h2 className="mt-4 text-lg font-medium text-kumo-danger">{message}</h2>
+			{providerName && <p className="mt-1 text-sm text-kumo-subtle">{providerName}</p>}
+			{hint && <p className="mt-3 text-sm text-kumo-subtle max-w-md mx-auto">{hint}</p>}
+			<Button className="mt-4" variant="secondary" onClick={onRetry}>
+				Retry
+			</Button>
+		</div>
 	);
 }
 
