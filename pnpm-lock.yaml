@@ -776,10 +776,10 @@ importers:
         version: 6.2.2
       kysely:
         specifier: '>=0.27.0'
-        version: 0.27.6
+        version: 0.28.14
       kysely-d1:
         specifier: ^0.4.0
-        version: 0.4.0(kysely@0.27.6)
+        version: 0.4.0(kysely@0.28.14)
       ulidx:
         specifier: ^2.4.1
         version: 2.4.1
@@ -902,8 +902,8 @@ importers:
         specifier: ^0.4.4
         version: 0.4.4
       kysely:
-        specifier: ^0.27.0
-        version: 0.27.6
+        specifier: ^0.28.14
+        version: 0.28.14
       mime:
         specifier: ^4.1.0
         version: 4.1.0
@@ -980,7 +980,7 @@ importers:
     optionalDependencies:
       '@libsql/kysely-libsql':
         specifier: ^0.4.0
-        version: 0.4.1(kysely@0.27.6)
+        version: 0.4.1(kysely@0.28.14)
       pg:
         specifier: ^8.20.0
         version: 8.20.0
@@ -6167,6 +6167,10 @@ packages:
     resolution: {integrity: sha512-FIyV/64EkKhJmjgC0g2hygpBv5RNWVPyNCqSAD7eTCv6eFWNIi4PN1UvdSJGicN/o35bnevgis4Y0UDC0qi8jQ==}
     engines: {node: '>=14.0.0'}
 
+  kysely@0.28.14:
+    resolution: {integrity: sha512-SU3lgh0rPvq7upc6vvdVrCsSMUG1h3ChvHVOY7wJ2fw4C9QEB7X3d5eyYEyULUX7UQtxZJtZXGuT6U2US72UYA==}
+    engines: {node: '>=20.0.0'}
+
   layerr@3.0.0:
     resolution: {integrity: sha512-tv754Ki2dXpPVApOrjTyRo4/QegVb9eVFq4mjqp4+NM5NaX7syQvN5BBNfV/ZpAHCEHV24XdUVrBAoka4jt3pA==}
 
@@ -9973,10 +9977,10 @@ snapshots:
       - utf-8-validate
     optional: true
 
-  '@libsql/kysely-libsql@0.4.1(kysely@0.27.6)':
+  '@libsql/kysely-libsql@0.4.1(kysely@0.28.14)':
     dependencies:
       '@libsql/client': 0.8.1
-      kysely: 0.27.6
+      kysely: 0.28.14
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -13808,11 +13812,13 @@ snapshots:
       - '@emnapi/core'
       - '@emnapi/runtime'
 
-  kysely-d1@0.4.0(kysely@0.27.6):
+  kysely-d1@0.4.0(kysely@0.28.14):
     dependencies:
-      kysely: 0.27.6
+      kysely: 0.28.14
 
   kysely@0.27.6: {}
+
+  kysely@0.28.14: {}
 
   layerr@3.0.0: {}
 
